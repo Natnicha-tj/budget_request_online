@@ -125,7 +125,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">1. กลุ่มบริหารงาน <span class="text-red-500">*</span></label>
-                                <select id="management_group" required onchange="updateDepartments()" class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                <select id="management_group" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
                                     <option value="" disabled selected>-- เลือกกลุ่มงาน --</option>
                                     <option value="กลุ่มบริหารงานบุคคล">กลุ่มบริหารงานบุคคล</option>
                                     <option value="กลุ่มบริหารวิชาการ">กลุ่มบริหารวิชาการ</option>
@@ -136,9 +136,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">2. งาน/ฝ่ายย่อย <span class="text-red-500">*</span></label>
-                                <select id="department_work" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
-                                    <option value="" disabled selected>-- เลือกฝ่ายงาน --</option>
-                                </select>
+                                <input type="text" id="department_work" placeholder="ระบุชื่องาน/ฝ่าย เช่น งานพัสดุ" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
                             </div>
                         </div>
 
@@ -318,7 +316,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                         <div class="md:col-span-5 relative">
                             <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
-                            <input type="text" id="searchTerm" oninput="renderTable()" placeholder="ค้นหารายการ, กลุ่มงาน..." class="w-full pl-9 pr-4 py-1.5 rounded-lg border border-slate-200 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition">
+                            <input type="text" id="searchTerm" oninput="renderTable()" placeholder="ค้นหารายการ, ชื่องาน, สเปก..." class="w-full pl-9 pr-4 py-1.5 rounded-lg border border-slate-200 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition">
                         </div>
                         <div class="md:col-span-4">
                             <select id="filterGroup" onchange="renderTable()" class="w-full rounded-lg border-slate-200 text-slate-600 px-3 py-1.5 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition border">
@@ -435,15 +433,6 @@
         let user = null;
         let requestsList = [];
 
-        // Dynamic Dept List map
-        const departmentsData = {
-            "กลุ่มบริหารงานบุคคล": ["งานวางแผนกำลังคน", "งานสรรหาและบรรจุแต่งตั้ง", "งานพัฒนาบุคลากร", "งานทะเบียนประวัติ"],
-            "กลุ่มบริหารวิชาการ": ["งานพัฒนาหลักสูตร", "งานวัดและประเมินผล", "งานส่งเสริมการศึกษา", "งานวิจัยและวิทยบริการ"],
-            "กลุ่มอำนวยการ": ["งานธุรการและสารบรรณ", "งานพัสดุและจัดซื้อ", "งานการเงินและบัญชี", "งานความปลอดภัยและอาคารสถานที่"],
-            "กลุ่มบริหารทั่วไป": ["งานสัมพันธ์ชุมชน", "งานประชาสัมพันธ์", "งานเทคโนโลยีสารสนเทศ", "งานสวัสดิการ"],
-            "กลุ่มแผนงานและงบประมาณ": ["งานวางแผนและวิเคราะห์งบประมาณ", "งานควบคุมและติดตาม", "งานยุทธศาสตร์องค์กร"]
-        };
-
         const mockImages = {
             "ครุภัณฑ์สำนักงาน": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=400",
             "ครุภัณฑ์คอมพิวเตอร์": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&q=80&w=400",
@@ -515,7 +504,7 @@
             event.preventDefault();
 
             const group = document.getElementById('management_group').value;
-            const work = document.getElementById('department_work').value;
+            const work = document.getElementById('department_work').value; // Reads as typed text input value
             const category = document.getElementById('category').value;
             const itemName = document.getElementById('item_name').value;
             const unit = document.getElementById('unit').value;
@@ -609,23 +598,6 @@
         };
 
         // Setup details and general rendering functions as globally accessible
-        window.updateDepartments = function() {
-            const groupSelect = document.getElementById('management_group');
-            const deptSelect = document.getElementById('department_work');
-            const selectedGroup = groupSelect.value;
-            
-            deptSelect.innerHTML = '<option value="" disabled selected>-- เลือกฝ่ายงาน --</option>';
-            
-            if (selectedGroup && departmentsData[selectedGroup]) {
-                departmentsData[selectedGroup].forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept;
-                    option.textContent = dept;
-                    deptSelect.appendChild(option);
-                });
-            }
-        };
-
         window.calculatePricing = function() {
             const shop1 = parseFloat(document.getElementById('shop1_price').value) || 0;
             const shop2 = parseFloat(document.getElementById('shop2_price').value) || 0;
@@ -699,7 +671,7 @@
             const demoPool = [
                 {
                     group: "กลุ่มบริหารวิชาการ",
-                    work: "งานส่งเสริมการศึกษา",
+                    work: "งานส่งเสริมการศึกษาพิเศษ",
                     category: "ครุภัณฑ์การศึกษา",
                     item: "ชุดหุ่นยนต์ฝึกทักษะการเขียนโปรแกรมขั้นสูง (Advanced Robotics Kit)",
                     unit: "ชุด",
@@ -711,7 +683,7 @@
                 },
                 {
                     group: "กลุ่มอำนวยการ",
-                    work: "งานพัสดุและจัดซื้อ",
+                    work: "งานพัสดุและจัดซื้อจัดจ้าง",
                     category: "ครุภัณฑ์สำนักงาน",
                     item: "ตู้เหล็กเก็บเอกสารสำคัญ ชนิด 4 ลิ้นชัก กันไฟ",
                     unit: "ใบ",
@@ -723,7 +695,7 @@
                 },
                 {
                     group: "กลุ่มบริหารงานบุคคล",
-                    work: "งานพัฒนาบุคลากร",
+                    work: "งานพัฒนาบุคลากรและฝึกอบรม",
                     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
                     item: "เครื่องฉายภาพโปรเจกเตอร์ความคมชัดสูง 4,500 Lumens",
                     unit: "เครื่อง",
@@ -738,8 +710,7 @@
             const picked = demoPool[Math.floor(Math.random() * demoPool.length)];
 
             document.getElementById('management_group').value = picked.group;
-            window.updateDepartments();
-            document.getElementById('department_work').value = picked.work;
+            document.getElementById('department_work').value = picked.work; // Sets text input successfully
             document.getElementById('category').value = picked.category;
             document.getElementById('item_name').value = picked.item;
             document.getElementById('unit').value = picked.unit;
@@ -774,7 +745,6 @@
             document.getElementById('selected_unit_price').innerText = "0.00 บาท";
             document.getElementById('total_budget_display').innerText = "0.00 บาท";
 
-            window.updateDepartments();
             window.calculatePricing();
         };
 
