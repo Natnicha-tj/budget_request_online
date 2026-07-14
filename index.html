@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบออนไลน์ - ขอจัดตั้งงบประมาณครุภัณฑ์ 2571</title>
+    <title>ระบบขอจัดตั้งงบประมาณครุภัณฑ์ 2571 - ออนไลน์ & ออฟไลน์</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts (Sarabun & Prompt) -->
@@ -23,10 +23,10 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 
-    <!-- Connection Status Bar -->
-    <div id="conn-status-bar" class="bg-amber-500 text-slate-900 text-xs py-1.5 px-4 text-center font-semibold font-title flex items-center justify-center gap-2">
-        <span class="inline-block w-2.5 h-2.5 rounded-full bg-slate-900 animate-pulse"></span>
-        <span>ระบบกำลังเชื่อมต่อฐานข้อมูล Cloud...</span>
+    <!-- Connection Status Bar (Dynamic Alert) -->
+    <div id="conn-status-bar" class="bg-amber-500 text-slate-900 text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2 transition-all duration-500">
+        <span class="inline-block w-2 h-2 rounded-full bg-slate-900 animate-pulse"></span>
+        <span id="conn-status-text">กำลังตรวจสอบสถานะการเชื่อมต่อฐานข้อมูล Cloud...</span>
     </div>
 
     <!-- Top Navigation Bar -->
@@ -38,15 +38,20 @@
                         <i data-lucide="cloud-lightning" class="w-6 h-6 text-yellow-300"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg md:text-xl font-bold font-title tracking-wide">ระบบออนไลน์ขอจัดตั้งงบประมาณครุภัณฑ์</h1>
-                        <p class="text-xs text-blue-200">ปีงบประมาณ พ.ศ. 2571 | เชื่อมโยงฐานข้อมูลแบบร่วมกันออนไลน์</p>
+                        <h1 class="text-lg md:text-xl font-bold font-title tracking-wide">ระบบขอจัดตั้งงบประมาณครุภัณฑ์</h1>
+                        <p class="text-xs text-blue-200">ปีงบประมาณ พ.ศ. 2571 | เปรียบเทียบราคา 3 ร้านค้า</p>
                     </div>
                 </div>
-                <div class="flex flex-col items-end">
-                    <span class="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full font-title mb-1">
-                        ฐานข้อมูลกลางระบบ Cloud
-                    </span>
-                    <span class="text-[10px] text-slate-300" id="user-id-display">ID: กำลังระบุตัวตน...</span>
+                <div class="flex items-center space-x-3">
+                    <div class="text-right hidden sm:block">
+                        <span id="database-mode-badge" class="bg-amber-400 text-slate-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-title">
+                            โหมดตรวจสอบการเชื่อมต่อ
+                        </span>
+                        <p class="text-[10px] text-slate-300 mt-0.5" id="user-id-display">ID: กำลังระบุตัวตน...</p>
+                    </div>
+                    <button onclick="openConfigModal()" class="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition" title="ตั้งค่าการเชื่อมต่อคลาวด์">
+                        <i data-lucide="settings" class="w-5 h-5 text-white"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -59,7 +64,7 @@
             <!-- Card 1: Total Budget Requested -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex items-center justify-between transition hover:shadow-md">
                 <div>
-                    <p class="text-sm text-slate-500 font-medium">รวมคำขอทั้งหมดบน Cloud</p>
+                    <p class="text-sm text-slate-500 font-medium">งบประมาณที่ขอตั้งทั้งหมด</p>
                     <h3 class="text-2xl font-bold text-indigo-700 font-title mt-1" id="stat-total-budget">0.00 บาท</h3>
                     <p class="text-xs text-slate-400 mt-1" id="stat-item-count">จากทั้งหมด 0 รายการ</p>
                 </div>
@@ -112,7 +117,7 @@
                     <div class="bg-gradient-to-r from-indigo-700 to-blue-600 px-6 py-4 text-white flex justify-between items-center">
                         <h2 class="text-md md:text-lg font-bold font-title flex items-center gap-2">
                             <i data-lucide="form-input" class="w-5 h-5"></i>
-                            กรอกคำขอข้อมูลออนไลน์
+                            กรอกคำขอข้อมูลครุภัณฑ์
                         </h2>
                         <button type="button" onclick="loadDemoData()" class="text-xs bg-white/20 hover:bg-white/35 transition px-3 py-1.5 rounded-lg border border-white/20 font-medium">
                             <i data-lucide="sparkles" class="w-3 h-3 inline-block mr-1 align-middle"></i>สุ่มตัวอย่าง
@@ -136,7 +141,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">2. งาน/ฝ่ายย่อย <span class="text-red-500">*</span></label>
-                                <input type="text" id="department_work" placeholder="ระบุชื่องาน/ฝ่าย เช่น งานพัสดุ" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                <input type="text" id="department_work" placeholder="พิมพ์ชื่องานเอง เช่น งานไอที" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
                             </div>
                         </div>
 
@@ -171,7 +176,7 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-sm font-bold text-slate-800 flex items-center gap-1">
                                     <i data-lucide="store" class="w-4 h-4 text-indigo-600"></i>
-                                    6. ราคาต่อหน่วย (เปรียบเทียบ 3 ร้านค้า)
+                                    6. ราคาต่อหน่วย (เปรียบเทียบราคา 3 ร้านค้า)
                                 </span>
                                 <span class="text-xs text-slate-400">หน่วย: บาท</span>
                             </div>
@@ -191,9 +196,9 @@
                                 </div>
                             </div>
 
-                            <!-- Selector for Best Price or Custom selection -->
+                            <!-- Selector for Best Price or Average -->
                             <div class="pt-2 border-t border-slate-200 flex flex-col space-y-2">
-                                <label class="block text-xs font-semibold text-slate-600">เกณฑ์การตั้งราคาต่อหน่วย:</label>
+                                <label class="block text-xs font-semibold text-slate-600">ราคาต่อหน่วยที่จะเลือกใช้จริง:</label>
                                 <div class="grid grid-cols-2 gap-2">
                                     <label class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
                                         <input type="radio" name="price_choice" value="lowest" checked onchange="calculatePricing()" class="text-indigo-600 focus:ring-indigo-500">
@@ -205,7 +210,7 @@
                                     </label>
                                 </div>
                                 <div class="flex items-center justify-between px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100 mt-1">
-                                    <span class="text-xs font-bold text-indigo-900">ราคาที่ระบบเลือกใช้จริง:</span>
+                                    <span class="text-xs font-bold text-indigo-900">ราคาต่อหน่วยวิเคราะห์เสร็จสิ้น:</span>
                                     <span class="text-sm font-extrabold text-indigo-700" id="selected_unit_price">0.00 บาท</span>
                                 </div>
                             </div>
@@ -229,12 +234,12 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- 7. รูปภาพ -->
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">7. รูปภาพครุภัณฑ์ <span class="text-slate-400 font-normal">(อัปโหลดคลาวด์/จำลอง)</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">7. รูปภาพครุภัณฑ์ <span class="text-slate-400 font-normal">(อัปโหลด/จำลอง)</span></label>
                                 <div class="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-white rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center h-28" onclick="document.getElementById('image_file').click()">
                                     <input type="file" id="image_file" accept="image/*" class="hidden" onchange="previewImage(this)">
                                     <div id="image_preview_box" class="flex flex-col items-center">
                                         <i data-lucide="image" class="w-6 h-6 text-slate-400 mb-1"></i>
-                                        <span class="text-[11px] text-slate-500 font-medium">คลิกเพื่อเลือกรูปครุภัณฑ์</span>
+                                        <span class="text-[11px] text-slate-500 font-medium">คลิกเลือกภาพตัวอย่าง</span>
                                         <span class="text-[9px] text-slate-400">JPG, PNG</span>
                                     </div>
                                     <div id="image_preview_active" class="hidden absolute inset-0 w-full h-full p-1 bg-white rounded-xl">
@@ -254,8 +259,8 @@
                                     <input type="file" id="quotation_file" accept=".pdf,.doc,.docx" class="hidden" onchange="previewFile(this)">
                                     <div id="file_preview_box" class="flex flex-col items-center">
                                         <i data-lucide="file-text" class="w-6 h-6 text-slate-400 mb-1"></i>
-                                        <span class="text-[11px] text-slate-500 font-medium">คลิกอัปโหลดไฟล์ใบเสนอราคา</span>
-                                        <span class="text-[9px] text-slate-400">PDF หรือ Word (รวม 3 ร้าน)</span>
+                                        <span class="text-[11px] text-slate-500 font-medium">คลิกอัปโหลดใบเสนอราคา</span>
+                                        <span class="text-[9px] text-slate-400">PDF (รวมใบเสนอราคา 3 ร้าน)</span>
                                     </div>
                                     <div id="file_preview_active" class="hidden absolute inset-0 w-full h-full p-2 bg-white rounded-xl flex items-center justify-between border border-slate-200">
                                         <div class="flex items-center space-x-2 text-left overflow-hidden">
@@ -279,7 +284,7 @@
                         <!-- 11. เหตุผลความจำเป็น -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">11. เหตุผลความจำเป็นในการขอจัดตั้งงบประมาณ <span class="text-red-500">*</span></label>
-                            <textarea id="reason_necessity" rows="3" placeholder="โปรดระบุเหตุผลความจำเป็นอย่างละเอียด..." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border"></textarea>
+                            <textarea id="reason_necessity" rows="3" placeholder="โปรดระบุรายละเอียดความคุ้มค่า ความจำเป็น..." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border"></textarea>
                         </div>
 
                         <!-- Action Buttons -->
@@ -287,22 +292,22 @@
                             <button type="button" onclick="clearForm()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 active:bg-slate-100 transition flex items-center gap-1.5">
                                 <i data-lucide="rotate-ccw" class="w-4 h-4"></i> ล้างฟอร์ม
                             </button>
-                            <button type="submit" id="submit-btn" disabled class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-400 text-white rounded-xl text-sm font-semibold transition flex items-center gap-1.5 shadow-md shadow-indigo-200">
-                                <i data-lucide="save" class="w-4 h-4"></i> ส่งข้อมูลเข้าคลาวด์
+                            <button type="submit" id="submit-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold transition flex items-center gap-1.5 shadow-md shadow-indigo-200">
+                                <i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูลคำขอ
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Right Side: Data Table and Search (7 Cols on Large Screen) -->
+            <!-- Right Side: Data Table -->
             <div class="lg:col-span-7 space-y-6">
                 <!-- Search, Filter and Actions Toolbar -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h2 class="text-lg font-bold font-title text-slate-800 flex items-center gap-2">
-                            <i data-lucide="cloud-download" class="w-5 h-5 text-indigo-600"></i>
-                            รายการขอบนฐานข้อมูลออนไลน์ พ.ศ. 2571
+                            <i data-lucide="table" class="w-5 h-5 text-indigo-600"></i>
+                            รายการขอยื่นตั้งงบครุภัณฑ์ พ.ศ. 2571
                         </h2>
                         
                         <div class="flex items-center space-x-2">
@@ -359,18 +364,61 @@
                         </table>
                     </div>
 
-                    <!-- Empty State / Loading State -->
+                    <!-- Empty / Status State -->
                     <div id="empty-state" class="p-12 text-center flex flex-col items-center justify-center">
-                        <div class="p-4 bg-slate-100 text-slate-400 rounded-full mb-3 animate-pulse">
-                            <i data-lucide="cloud" class="w-10 h-10"></i>
+                        <div class="p-4 bg-slate-100 text-slate-400 rounded-full mb-3">
+                            <i data-lucide="inbox" class="w-10 h-10"></i>
                         </div>
-                        <h4 class="text-sm font-semibold text-slate-700" id="empty-state-title">กำลังดึงข้อมูล Real-time จาก Cloud...</h4>
-                        <p class="text-xs text-slate-400 mt-1 max-w-sm">กรุณารอสักครู่ ระบบกำลังสื่อสารกับ Server ของระบบงบประมาณ พ.ศ. 2571</p>
+                        <h4 class="text-sm font-semibold text-slate-700" id="empty-state-title">ไม่พบรายการขอตั้งงบประมาณ</h4>
+                        <p class="text-xs text-slate-400 mt-1 max-w-sm" id="empty-state-desc">ยังไม่มีข้อมูลบันทึกในระบบ เริ่มต้นโดยการกรอกฟอร์มทางด้านซ้าย หรือคลิกสุ่มข้อมูลตัวอย่าง</p>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Cloud Connection Setup Modal -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform scale-95 transition-all duration-300">
+            <div class="bg-slate-900 px-6 py-4 text-white flex items-center justify-between">
+                <h3 class="text-md font-bold font-title flex items-center gap-2">
+                    <i data-lucide="database" class="text-emerald-400 w-5 h-5"></i>
+                    ตั้งค่าฐานข้อมูลคลาวด์ (Firebase Setup)
+                </h3>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white p-1 rounded transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 text-sm">
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    คุณสามารถเปลี่ยนระบบนี้ให้กลายเป็นระบบเชื่อมต่อ Cloud ทันที เพื่อแชร์ให้ทุกคนกรอกข้อมูลร่วมกันออนไลน์ได้ฟรี โดยวางค่า <strong>Firebase Config</strong> ของคุณลงในช่องด้านล่างนี้:
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Firebase Configuration (JSON):</label>
+                    <textarea id="firebase-json-input" rows="8" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' class="w-full font-mono text-[11px] p-3 border border-slate-200 bg-slate-50 rounded-xl outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition"></textarea>
+                </div>
+                <div class="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100 text-xs">
+                    <span class="font-semibold text-indigo-900">มีสัญญลักษณ์ Cloud:</span>
+                    <span class="text-slate-500 text-[10px] text-right">เซฟค่าระบบจะโหลดหน้ารีเซ็ตเพื่อเริ่มใช้งาน</span>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end space-x-2">
+                <button onclick="clearCustomFirebase()" class="px-4 py-2 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl transition">
+                    ล้างการเชื่อมต่อคลาวด์
+                </button>
+                <button onclick="saveCustomFirebase()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-indigo-100">
+                    บันทึกและเชื่อมต่อ
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Detailed Modal View -->
     <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -379,7 +427,7 @@
             <div class="bg-gradient-to-r from-indigo-700 to-blue-600 px-6 py-4 text-white flex items-center justify-between">
                 <h3 class="text-md font-bold font-title flex items-center gap-2">
                     <i data-lucide="clipboard-list" class="w-5 h-5 text-yellow-300"></i>
-                    รายละเอียดคำขอจัดตั้งงบประมาณครุภัณฑ์ (สืบค้นออนไลน์)
+                    รายละเอียดคำขอจัดตั้งงบประมาณครุภัณฑ์
                 </h3>
                 <button onclick="closeModal()" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -403,36 +451,26 @@
     <!-- Alert / Toast Container -->
     <div id="toast" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-2.5 transform translate-y-20 opacity-0 transition-all duration-300">
         <i data-lucide="check-circle" class="w-5 h-5 text-yellow-300" id="toast-icon"></i>
-        <span class="text-xs font-semibold font-title" id="toast-message">บันทึกข้อมูลเรียบร้อย!</span>
+        <span class="text-xs font-semibold font-title" id="toast-message">บันทึกข้อมูลสำเร็จแล้ว!</span>
     </div>
 
-    <!-- Firebase App/Auth/Firestore Module CDN -->
+    <!-- MAIN ENGINE: Dual-Mode Engine Implementation -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Variables provided by the Environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'budget-durable-2571';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "", 
-                authDomain: "mock-project.firebaseapp.com",
-                projectId: "mock-project",
-                storageBucket: "mock-project.appspot.com",
-                messagingSenderId: "12345678",
-                appId: "1:1234:web:abcd"
-              };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let user = null;
+        // Global States
+        let dbMode = "local"; // local | cloud
         let requestsList = [];
+        let firebaseApp = null;
+        let firebaseAuth = null;
+        let firebaseDb = null;
+        let userUid = "Local-Session";
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'budget-durable-2571';
+        
+        // Mock default data
         const mockImages = {
             "ครุภัณฑ์สำนักงาน": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=400",
             "ครุภัณฑ์คอมพิวเตอร์": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&q=80&w=400",
@@ -442,48 +480,180 @@
             "ครุภัณฑ์อื่นๆ": "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&q=80&w=400"
         };
 
-        // Firebase Auth Init (RULE 3 - Auth First before queries)
-        const initAuth = async () => {
+        // Check if there is a custom Firebase config saved in LocalStorage by the user
+        const storedFirebaseConfig = localStorage.getItem('budget_custom_firebase');
+        let activeFirebaseConfig = null;
+
+        if (storedFirebaseConfig) {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                activeFirebaseConfig = JSON.parse(storedFirebaseConfig);
+            } catch (e) {
+                console.error("Invalid stored Firebase config JSON", e);
+            }
+        } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+            // Environment supplied config
+            try {
+                activeFirebaseConfig = JSON.parse(__firebase_config);
+            } catch (e) {
+                console.error("Invalid environmental Firebase config JSON", e);
+            }
+        }
+
+        // Initialize App & Auto fallback mechanism (Set a 3 seconds maximum wait)
+        window.onload = async function() {
+            lucide.createIcons();
+            
+            let connTimeout = setTimeout(() => {
+                if (dbMode === "local") {
+                    switchToLocalMode("เชื่อมต่อฐานข้อมูลล่าช้า สลับไปใช้งานแบบออฟไลน์เรียบร้อยแล้ว");
                 }
-            } catch (error) {
-                console.error("Auth failed, falling back to local simulation.", error);
-                // Update Connection status bar to warning offline mode
-                document.getElementById('conn-status-bar').className = "bg-rose-600 text-white text-xs py-1.5 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
-                document.getElementById('conn-status-bar').innerHTML = `<i data-lucide='cloud-off' class='w-4 h-4'></i><span>ทำงานในโหมด Offline (เนื่องจากไม่มีข้อมูลคีย์เชื่อมต่อ Cloud ของแพลตฟอร์ม)</span>`;
-                lucide.createIcons();
-                
-                // Allow simulation submit
-                document.getElementById('submit-btn').removeAttribute('disabled');
+            }, 3000); // 3 seconds timeout
+
+            if (activeFirebaseConfig && activeFirebaseConfig.apiKey) {
+                try {
+                    firebaseApp = initializeApp(activeFirebaseConfig);
+                    firebaseAuth = getAuth(firebaseApp);
+                    firebaseDb = getFirestore(firebaseApp);
+
+                    // Sign-In with customized token or anonymously
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(firebaseAuth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(firebaseAuth);
+                    }
+
+                    // Register auth state handler
+                    onAuthStateChanged(firebaseAuth, (authUser) => {
+                        if (authUser) {
+                            clearTimeout(connTimeout);
+                            dbMode = "cloud";
+                            userUid = authUser.uid;
+                            
+                            document.getElementById('user-id-display').innerText = `Cloud ID: ${userUid.substring(0, 10)}...`;
+                            
+                            // Visual bar update
+                            const bar = document.getElementById('conn-status-bar');
+                            bar.className = "bg-emerald-600 text-white text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
+                            document.getElementById('conn-status-text').innerHTML = `<i data-lucide='cloud-lightning' class='w-4 h-4 text-yellow-300'></i><span>เชื่อมต่อฐานข้อมูล Cloud สำเร็จ! ข้อมูลอัปเดตแบบ Real-time ร่วมกัน</span>`;
+                            
+                            const badge = document.getElementById('database-mode-badge');
+                            badge.className = "bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full font-title";
+                            badge.innerText = "ฐานข้อมูล Cloud ออนไลน์";
+                            
+                            lucide.createIcons();
+                            
+                            // Listen to Cloud Collection
+                            subscribeToCloudDatabase();
+                        }
+                    });
+
+                } catch (err) {
+                    console.error("Firebase Connection Error:", err);
+                    clearTimeout(connTimeout);
+                    switchToLocalMode("ไม่สามารถเชื่อมต่อคลาวด์ได้ สลับมาทำงานแบบบันทึกในเครื่องอัตโนมัติ");
+                }
+            } else {
+                clearTimeout(connTimeout);
+                switchToLocalMode("สลับมาใช้โหมดบันทึกในเครื่อง (Local Storage Mode) เรียบร้อยแล้ว");
             }
         };
 
-        initAuth();
-
-        // Observe Auth Status
-        onAuthStateChanged(auth, (authUser) => {
-            user = authUser;
-            if (user) {
-                document.getElementById('user-id-display').innerText = `ID: ${user.uid.substring(0, 10)}...`;
-                document.getElementById('conn-status-bar').className = "bg-emerald-500 text-white text-xs py-1.5 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
-                document.getElementById('conn-status-bar').innerHTML = `<i data-lucide='cloud-lightning' class='w-4 h-4 text-yellow-300'></i><span>ระบบเชื่อมต่อฐานข้อมูล Cloud สำเร็จ! ข้อมูลจะอัปเดตแบบ Real-time ร่วมกันออนไลน์</span>`;
-                lucide.createIcons();
-                document.getElementById('submit-btn').removeAttribute('disabled');
-                
-                // Set up Listener once logged in (RULE 1 - Strict Paths)
-                subscribeToDatabase();
-            }
-        });
-
-        // Setup real-time listener from FireStore (RULE 2 - No complex Queries, simple collection fetching)
-        function subscribeToDatabase() {
-            if (!user) return;
+        // Switch to local mode setup
+        function switchToLocalMode(message) {
+            dbMode = "local";
+            userUid = "Local-Session";
             
-            const publicDataCollection = collection(db, 'artifacts', appId, 'public', 'data', 'requests');
+            // Set User ID text
+            document.getElementById('user-id-display').innerText = "ID: ออฟไลน์เซสชัน (บันทึกข้อมูลในเครื่อง)";
+            
+            // Set connection warning bar
+            const bar = document.getElementById('conn-status-bar');
+            bar.className = "bg-blue-600 text-white text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
+            document.getElementById('conn-status-text').innerHTML = `<i data-lucide='save' class='w-4 h-4 text-yellow-300'></i><span>${message}</span>`;
+            
+            // Mode Badge update
+            const badge = document.getElementById('database-mode-badge');
+            badge.className = "bg-blue-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full font-title";
+            badge.innerText = "โหมดออฟไลน์ (Local)";
+            
+            lucide.createIcons();
+
+            // Load items from Browser storage
+            loadFromLocalStorage();
+        }
+
+        // Load items from local storage
+        function loadFromLocalStorage() {
+            const stored = localStorage.getItem('durable_articles_requests_2571');
+            if (stored) {
+                try {
+                    requestsList = JSON.parse(stored);
+                } catch (e) {
+                    requestsList = [];
+                }
+            } else {
+                // Populate default mockup items for new users
+                populateDefaultData();
+            }
+            renderTable();
+            updateDashboardStats();
+        }
+
+        // Save states locally helper
+        function saveToLocalStorage() {
+            localStorage.setItem('durable_articles_requests_2571', JSON.stringify(requestsList));
+        }
+
+        // Initialize dummy samples on first launch for Local Mode
+        function populateDefaultData() {
+            requestsList = [
+                {
+                    id: "req-1",
+                    fiscal_year: 2571,
+                    management_group: "กลุ่มบริหารทั่วไป",
+                    department_work: "งานเทคโนโลยีสารสนเทศ",
+                    category: "ครุภัณฑ์คอมพิวเตอร์",
+                    item_name: "เครื่องคอมพิวเตอร์ประมวลผลประสิทธิภาพสูง สำหรับเรียนรู้ AI",
+                    quantity: 5,
+                    unit: "ชุด",
+                    shop1_price: 38000,
+                    shop2_price: 37500,
+                    shop3_price: 39000,
+                    price_choice: "lowest",
+                    selected_price: 37500,
+                    total_budget: 187500,
+                    image_url: mockImages["ครุภัณฑ์คอมพิวเตอร์"],
+                    quotation_file_url: "mock_quotation_doc_bundle_it.pdf",
+                    reason_necessity: "เพื่อยกระดับการศึกษาด้านวิชาการปัญญาประดิษฐ์และวิทยาศาสตร์ข้อมูล รองรับหลักสูตรปี พ.ศ. 2571"
+                },
+                {
+                    id: "req-2",
+                    fiscal_year: 2571,
+                    management_group: "กลุ่มอำนวยการ",
+                    department_work: "งานความปลอดภัยและอาคารสถานที่",
+                    category: "ครุภัณฑ์สำนักงาน",
+                    item_name: "เครื่องฟอกอากาศระบบแผ่นกรอง HEPA ขนาดใหญ่",
+                    quantity: 12,
+                    unit: "เครื่อง",
+                    shop1_price: 12500,
+                    shop2_price: 13200,
+                    shop3_price: 11900,
+                    price_choice: "lowest",
+                    selected_price: 11900,
+                    total_budget: 142800,
+                    image_url: mockImages["ครุภัณฑ์สำนักงาน"],
+                    quotation_file_url: "quotation_shop_comparison_air.pdf",
+                    reason_necessity: "ติดตั้งในห้องเรียนเพื่อสุขอนามัยที่ดี แก่นักศึกษาและบุคลากรทุกท่าน"
+                }
+            ];
+            saveToLocalStorage();
+        }
+
+        // Subscribe to Firestore Cloud database real-time (Rule 1, Rule 2, Rule 3 implementation)
+        function subscribeToCloudDatabase() {
+            if (!firebaseAuth.currentUser) return;
+            
+            const publicDataCollection = collection(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests');
             
             onSnapshot(publicDataCollection, (snapshot) => {
                 requestsList = [];
@@ -494,17 +664,20 @@
                 renderTable();
                 updateDashboardStats();
             }, (error) => {
-                console.error("Error fetching data:", error);
-                showToast("ไม่สามารถซิงค์ข้อมูลกับเซิร์ฟเวอร์ได้ชั่วคราว", "warning");
+                console.error("Firestore loading error:", error);
+                showToast("ไม่สามารถเรียกดูข้อมูลออนไลน์ยลออฟไลน์ได้ สลับมาใช้ข้อมูลในเครื่อง", "warning");
+                if (requestsList.length === 0) {
+                    loadFromLocalStorage();
+                }
             });
         }
 
-        // Handle Online form submission
+        // Form Submit handler
         window.handleFormSubmit = async function(event) {
             event.preventDefault();
 
             const group = document.getElementById('management_group').value;
-            const work = document.getElementById('department_work').value; // Reads as typed text input value
+            const work = document.getElementById('department_work').value; // Custom user typed text input
             const category = document.getElementById('category').value;
             const itemName = document.getElementById('item_name').value;
             const unit = document.getElementById('unit').value;
@@ -518,7 +691,7 @@
             const quotationUrl = document.getElementById('quotation_file_url').value;
 
             if (!quotationUrl) {
-                showToast("คำเตือน: กรุณาแนบไฟล์ใบเสนอราคา", "warning");
+                showToast("โปรดอัปโหลดหรือระบุใบเสนอราคาแนบเพื่อความสมบูรณ์", "warning");
                 return;
             }
 
@@ -551,53 +724,97 @@
                 image_url: imageUrl,
                 quotation_file_url: quotationUrl,
                 reason_necessity: reason,
-                created_by: user ? user.uid : "offline-user",
+                created_by: userUid,
                 timestamp: Date.now()
             };
 
-            try {
-                if (user) {
-                    // Save to cloud Firestore (RULE 1 - Strict Path)
-                    const requestsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'requests');
+            if (dbMode === "cloud" && firebaseDb) {
+                try {
+                    const requestsCollection = collection(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests');
                     await addDoc(requestsCollection, requestData);
-                    showToast("ส่งคำขอขึ้นฐานข้อมูลออนไลน์แล้ว!", "success");
+                    showToast("บันทึกข้อมูลยื่นคำขอขึ้น Cloud เรียบร้อย!", "success");
+                    clearForm();
+                } catch (err) {
+                    console.error("Cloud saving error, fallback to local:", err);
+                    showToast("เกิดข้อผิดพลาดในการบันทึกออนไลน์ ระบบบันทึกในเครื่องแทน", "warning");
+                    saveDataLocallyFallback(requestData);
+                }
+            } else {
+                saveDataLocallyFallback(requestData);
+            }
+        };
+
+        function saveDataLocallyFallback(data) {
+            data.id = "local-" + Date.now();
+            requestsList.push(data);
+            saveToLocalStorage();
+            renderTable();
+            updateDashboardStats();
+            showToast("บันทึกข้อมูลเรียบร้อยแล้วในเครื่องของคุณ!", "success");
+            clearForm();
+        }
+
+        // Delete function
+        window.deleteItem = async function(id) {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบ?")) {
+                if (dbMode === "cloud" && id.indexOf("local-") === -1 && firebaseDb) {
+                    try {
+                        const docRef = doc(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests', id);
+                        await deleteDoc(docRef);
+                        showToast("ลบข้อมูลออกจากเซิร์ฟเวอร์ Cloud สำเร็จ", "success");
+                    } catch (err) {
+                        console.error("Cloud deletion error:", err);
+                        showToast("เกิดข้อผิดพลาดในการลบไฟล์จากระบบคลาวด์", "warning");
+                    }
                 } else {
-                    // Fallback to offline memory
-                    requestData.id = "local-" + Date.now();
-                    requestsList.push(requestData);
+                    requestsList = requestsList.filter(x => x.id !== id);
+                    saveToLocalStorage();
                     renderTable();
                     updateDashboardStats();
-                    showToast("บันทึกข้อมูลในเครื่องแบบออฟไลน์สำเร็จ", "info");
-                }
-                clearForm();
-            } catch (err) {
-                console.error("Save error:", err);
-                showToast("เกิดข้อผิดพลาดในการบันทึกข้อมูลออนไลน์", "warning");
-            }
-        };
-
-        // Action: Delete Item from Firestore
-        window.deleteItem = async function(id) {
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบ Cloud?")) {
-                try {
-                    if (user && id.indexOf("local-") === -1) {
-                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'requests', id);
-                        await deleteDoc(docRef);
-                        showToast("ลบข้อมูลจากฐานข้อมูลออนไลน์สำเร็จ", "success");
-                    } else {
-                        requestsList = requestsList.filter(x => x.id !== id);
-                        renderTable();
-                        updateDashboardStats();
-                        showToast("ลบข้อมูลในเครื่องชั่วคราวสำเร็จ", "info");
-                    }
-                } catch (err) {
-                    console.error("Delete error:", err);
-                    showToast("ไม่สามารถลบข้อมูลออนไลน์ได้ชั่วคราว", "warning");
+                    showToast("ลบรายการออกจากเครื่องสำเร็จ", "info");
                 }
             }
         };
 
-        // Setup details and general rendering functions as globally accessible
+        // Firebase Custom config Setup procedures
+        window.openConfigModal = function() {
+            const input = document.getElementById('firebase-json-input');
+            const saved = localStorage.getItem('budget_custom_firebase');
+            if (saved) {
+                input.value = saved;
+            }
+            document.getElementById('configModal').classList.remove('hidden');
+        };
+
+        window.closeConfigModal = function() {
+            document.getElementById('configModal').classList.add('hidden');
+        };
+
+        window.saveCustomFirebase = function() {
+            const rawVal = document.getElementById('firebase-json-input').value;
+            try {
+                const parsed = JSON.parse(rawVal);
+                if (!parsed.apiKey || !parsed.projectId) {
+                    alert("ข้อมูล Firebase Config JSON ไม่สมบูรณ์ กรุณาตรวจสอบ apiKey และ projectId");
+                    return;
+                }
+                localStorage.setItem('budget_custom_firebase', JSON.stringify(parsed));
+                alert("บันทึกข้อมูล Firebase คีย์สำเร็จ! หน้าจอจะรีเฟรชเพื่อเข้าสู่ฐานข้อมูลคลาวด์ของคุณ");
+                window.location.reload();
+            } catch (e) {
+                alert("ข้อมูลไม่อยู่ในฟอร์แมต JSON ที่ถูกต้อง กรุณาตรวจสอบวงเล็บปีกกาและเครื่องหมายอัญประกาศ");
+            }
+        };
+
+        window.clearCustomFirebase = function() {
+            if (confirm("คุณต้องการยกเลิกการตั้งค่าฐานข้อมูลคลาวด์และกลับไปใช้งานออฟไลน์ใช่หรือไม่?")) {
+                localStorage.removeItem('budget_custom_firebase');
+                alert("ยกเลิกการเชื่อมต่อแล้ว หน้าจอจะรีเฟรชเพื่อกลับสู่โหมดบันทึกออฟไลน์ในเครื่อง");
+                window.location.reload();
+            }
+        };
+
+        // Helper calculations
         window.calculatePricing = function() {
             const shop1 = parseFloat(document.getElementById('shop1_price').value) || 0;
             const shop2 = parseFloat(document.getElementById('shop2_price').value) || 0;
@@ -671,46 +888,46 @@
             const demoPool = [
                 {
                     group: "กลุ่มบริหารวิชาการ",
-                    work: "งานส่งเสริมการศึกษาพิเศษ",
-                    category: "ครุภัณฑ์การศึกษา",
-                    item: "ชุดหุ่นยนต์ฝึกทักษะการเขียนโปรแกรมขั้นสูง (Advanced Robotics Kit)",
-                    unit: "ชุด",
-                    shop1: 15400,
-                    shop2: 14800,
-                    shop3: 15900,
-                    qty: 4,
-                    reason: "ใช้ประกอบการจัดกิจกรรมการเรียนวิทยาการคำนวณระดับสูง สำหรับผู้เรียนที่มีทักษะพิเศษทางเทคโนโลยี เพื่อเตรียมแข่งขันระดับชาติ"
+                    work: "งานวิทยบริการและสื่อนวัตกรรม",
+                    category: "ครุภัณฑ์คอมพิวเตอร์",
+                    item: "เครื่องประมวลผลเซิร์ฟเวอร์ย่อย สำหรับจัดการระบบห้องสมุดดิจิทัล",
+                    unit: "เครื่อง",
+                    shop1: 45000,
+                    shop2: 43200,
+                    shop3: 44500,
+                    qty: 2,
+                    reason: "ใช้เพื่อขยายศักยภาพห้องสมุดของสถานศึกษาให้เข้าสู่ระบบออนไลน์แบบยืดหยุ่น รองรับการเข้าถึงของนักศึกษา"
                 },
                 {
                     group: "กลุ่มอำนวยการ",
-                    work: "งานพัสดุและจัดซื้อจัดจ้าง",
+                    work: "งานธุรการและสารบรรณกลาง",
                     category: "ครุภัณฑ์สำนักงาน",
-                    item: "ตู้เหล็กเก็บเอกสารสำคัญ ชนิด 4 ลิ้นชัก กันไฟ",
-                    unit: "ใบ",
-                    shop1: 8900,
-                    shop2: 9200,
-                    shop3: 8800,
-                    qty: 6,
-                    reason: "ใช้เพื่อทดแทนตู้เอกสารไม้เดิมที่ชำรุดเสียหาย และเพื่อความปลอดภัยสูงสุดในการเก็บรักษาเอกสารสำคัญทางการเงินและการประมูล"
+                    item: "เครื่องทำลายเอกสารระบบความละเอียดสูงตัดแบบ Cross-Cut",
+                    unit: "เครื่อง",
+                    shop1: 18500,
+                    shop2: 17900,
+                    shop3: 19200,
+                    qty: 4,
+                    reason: "ใช้สำหรับทำลายเอกสารสอบและเอกสารลับข้อมูลส่วนบุคคลตามกฎหมาย PDPA เพื่อความปลอดภัยของข้อมูลในองค์กร"
                 },
                 {
-                    group: "กลุ่มบริหารงานบุคคล",
-                    work: "งานพัฒนาบุคลากรและฝึกอบรม",
+                    group: "กลุ่มบริหารทั่วไป",
+                    work: "งานประชาสัมพันธ์องค์กร",
                     category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
-                    item: "เครื่องฉายภาพโปรเจกเตอร์ความคมชัดสูง 4,500 Lumens",
-                    unit: "เครื่อง",
-                    shop1: 24500,
-                    shop2: 23900,
-                    shop3: 25000,
-                    qty: 2,
-                    reason: "ใช้ปรับปรุงห้องอบรมพนักงานและฝ่ายบุคลากร ให้สามารถฉายผลงานความละเอียดสูงในการฝึกอบรมและประเมินสมรรถนะการปฏิบัติราชการ"
+                    item: "ไมโครโฟนไร้สายระบบดิจิทัลแบบคู่ความถี่สูง UHF",
+                    unit: "ชุด",
+                    shop1: 11000,
+                    shop2: 11500,
+                    shop3: 10500,
+                    qty: 5,
+                    reason: "ใช้สำหรับงานกิจกรรมปฐมนิเทศ และงานประชุมผู้ปกครองขนาดใหญ่กลางแจ้ง เพื่อคุณภาพสัญญาณเสียงที่คมชัด"
                 }
             ];
 
             const picked = demoPool[Math.floor(Math.random() * demoPool.length)];
 
             document.getElementById('management_group').value = picked.group;
-            document.getElementById('department_work').value = picked.work; // Sets text input successfully
+            document.getElementById('department_work').value = picked.work;
             document.getElementById('category').value = picked.category;
             document.getElementById('item_name').value = picked.item;
             document.getElementById('unit').value = picked.unit;
@@ -722,11 +939,11 @@
             
             document.getElementById('file_preview_box').classList.add('hidden');
             document.getElementById('file_preview_active').classList.remove('hidden');
-            document.getElementById('file_name').innerText = `quotation_comparison_${Date.now().toString().slice(-4)}.pdf`;
-            document.getElementById('quotation_file_url').value = `quotation_comparison_${Date.now().toString().slice(-4)}.pdf`;
+            document.getElementById('file_name').innerText = `quotation_bundle_${Date.now().toString().slice(-4)}.pdf`;
+            document.getElementById('quotation_file_url').value = `quotation_bundle_${Date.now().toString().slice(-4)}.pdf`;
 
             window.calculatePricing();
-            showToast("สุ่มข้อมูลตัวอย่างใส่ฟอร์มเสร็จสิ้น!", "info");
+            showToast("สุ่มข้อมูลเรียบร้อย ใส่ในแบบฟอร์มให้แล้วครับ", "info");
         };
 
         window.clearForm = function() {
@@ -777,6 +994,7 @@
             if (filteredList.length === 0) {
                 emptyState.classList.remove('hidden');
                 document.getElementById('empty-state-title').innerText = "ไม่มีข้อมูลคำขอจัดตั้งงบประมาณ";
+                document.getElementById('empty-state-desc').innerText = "ระบบไม่มีข้อมูลแสดงผลตามการกรอง ค้นหา หรือบันทึกปัจจุบัน";
                 return;
             } else {
                 emptyState.classList.add('hidden');
@@ -878,7 +1096,7 @@
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
-            showToast("ดาวน์โหลดสรุปแผนงบประมาณสำเร็จ!", "success");
+            showToast("ดาวน์โหลดข้อมูลสำเร็จแล้ว!", "success");
         };
 
         window.viewDetail = function(id) {
@@ -900,18 +1118,18 @@
                         <div class="bg-slate-100 rounded-xl overflow-hidden aspect-video relative flex items-center justify-center border">
                             <img src="${item.image_url}" alt="ภาพครุภัณฑ์" class="w-full h-full object-cover">
                             <span class="absolute bottom-2 left-2 bg-slate-900/60 text-white text-[10px] px-2 py-0.5 rounded-full">
-                                🖼️ รูปภาพครุภัณฑ์แนบ
+                                🖼️ รูปภาพครุภัณฑ์
                             </span>
                         </div>
 
                         <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2">
                             <div class="flex items-center space-x-2 text-indigo-900 font-bold text-xs">
                                 <i data-lucide="file-check" class="w-4.5 h-4.5 text-indigo-700"></i>
-                                <span>หลักฐานใบเสนอราคาแนบ</span>
+                                <span>ไฟล์ใบเสนอราคา (3 ร้านใน 1 ไฟล์)</span>
                             </div>
                             <p class="text-[11px] font-semibold text-slate-600 truncate">${item.quotation_file_url}</p>
-                            <a href="#" onclick="alert('จำลองเปิดเอกสารหลักฐานใบเสนอราคาเปรียบเทียบบน Cloud')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
-                                <i data-lucide="external-link" class="w-3.5 h-3.5 inline mr-1"></i>ตรวจสอบใบเสนอราคา (3 ร้าน)
+                            <a href="#" onclick="alert('กำลังเปิดดูไฟล์ใบเสนอราคาที่รวบรวมไว้...')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5 inline mr-1"></i>คลิกเพื่อเปิดเอกสารแนบ
                             </a>
                         </div>
                     </div>
@@ -932,15 +1150,15 @@
                                 <p class="font-bold text-slate-700 mt-0.5">${item.management_group}</p>
                             </div>
                             <div>
-                                <p class="text-slate-400 font-semibold">ฝ่ายงานย่อย:</p>
+                                <p class="text-slate-400 font-semibold">ฝ่ายงาน/งานย่อย:</p>
                                 <p class="font-bold text-slate-700 mt-0.5">${item.department_work}</p>
                             </div>
                             <div>
-                                <p class="text-slate-400 font-semibold">จำนวนที่ต้องการ:</p>
+                                <p class="text-slate-400 font-semibold">จำนวน:</p>
                                 <p class="font-extrabold text-slate-800 mt-0.5 text-sm">${item.quantity} ${item.unit}</p>
                             </div>
                             <div>
-                                <p class="text-slate-400 font-semibold">งบประมาณที่ขอตั้ง:</p>
+                                <p class="text-slate-400 font-semibold">งบประมาณรวม:</p>
                                 <p class="font-extrabold text-emerald-700 font-title mt-0.5 text-sm">${formatThaiCurrency(item.total_budget)}</p>
                             </div>
                         </div>
@@ -948,7 +1166,7 @@
                         <hr class="border-slate-100">
 
                         <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs font-bold text-slate-500 mb-1">เหตุผลความจำเป็น:</p>
+                            <p class="text-xs font-bold text-slate-500 mb-1">11. เหตุผลความจำเป็น:</p>
                             <p class="text-xs text-slate-600 leading-relaxed italic">${item.reason_necessity}</p>
                         </div>
                     </div>
@@ -982,9 +1200,9 @@
                     <div class="mt-3.5 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100/50 rounded-xl flex items-center justify-between text-xs text-indigo-950 font-medium">
                         <p class="flex items-center gap-1">
                             <i data-lucide="piggy-bank" class="w-4 h-4 text-emerald-600"></i>
-                            ระบบช่วยรักษางบประมาณได้สูงสุด <strong class="text-emerald-700 font-bold">${savingsPercent}%</strong>
+                            ระบบรักษางบประมาณและประหยัดได้สูงสุด <strong class="text-emerald-700 font-bold">${savingsPercent}%</strong>
                         </p>
-                        <span>ส่วนต่างราคาตลาดสูงสุด: ${formatThaiCurrency(diffPrice)}</span>
+                        <span>ส่วนต่างส่วนลดตลาด: ${formatThaiCurrency(diffPrice)}</span>
                     </div>
                 </div>
             `;
@@ -1050,10 +1268,6 @@
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3500);
         }
-
-        // Run icons
-        lucide.createIcons();
     </script>
 </body>
 </html>
-
