@@ -391,7 +391,7 @@
             </div>
             <div class="p-6 space-y-4 text-sm">
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    คุณสามารถเปลี่ยนระบบนี้ให้กลายเป็นระบบเชื่อมต่อ Cloud ทันที เพื่อแชร์ให้ทุกคนกรอกข้อมูลร่วมกันออนไลน์ได้ฟรี โดยวางค่า <strong>Firebase Config</strong> ของคุณลงในช่องด้านล่างนี้:
+                    คุณสามารถเปลี่ยนฐานข้อมูลคลาวด์ได้ด้วยการวางข้อความ <strong>Firebase Config</strong> JSON ของคุณในช่องด้านล่างนี้:
                 </p>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Firebase Configuration (JSON):</label>
@@ -405,7 +405,7 @@
 }' class="w-full font-mono text-[11px] p-3 border border-slate-200 bg-slate-50 rounded-xl outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition"></textarea>
                 </div>
                 <div class="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100 text-xs">
-                    <span class="font-semibold text-indigo-900">มีสัญญลักษณ์ Cloud:</span>
+                    <span class="font-semibold text-indigo-900">มีสัญลักษณ์ Cloud:</span>
                     <span class="text-slate-500 text-[10px] text-right">เซฟค่าระบบจะโหลดหน้ารีเซ็ตเพื่อเริ่มใช้งาน</span>
                 </div>
             </div>
@@ -448,6 +448,20 @@
         </div>
     </div>
 
+    <!-- Custom Alert & Confirm Dialog Modal (Standard Popups Replacements) -->
+    <div id="customDialogModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-6 text-center space-y-4 transform scale-95 transition-all duration-300">
+            <div id="dialog-icon-container" class="mx-auto w-12 h-12 rounded-full flex items-center justify-center">
+                <!-- Icon will be injected here -->
+            </div>
+            <h4 id="dialog-title" class="text-base font-bold font-title text-slate-800">หัวข้อยืนยัน</h4>
+            <p id="dialog-message" class="text-xs text-slate-500 leading-relaxed">ข้อความแจ้งเตือน</p>
+            <div class="flex items-center justify-center gap-2 pt-2" id="dialog-buttons">
+                <!-- Buttons will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Alert / Toast Container -->
     <div id="toast" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-2.5 transform translate-y-20 opacity-0 transition-all duration-300">
         <i data-lucide="check-circle" class="w-5 h-5 text-yellow-300" id="toast-icon"></i>
@@ -470,7 +484,7 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'budget-durable-2571';
         
-        // Mock default data
+        // Mock default images
         const mockImages = {
             "ครุภัณฑ์สำนักงาน": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=400",
             "ครุภัณฑ์คอมพิวเตอร์": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&q=80&w=400",
@@ -480,32 +494,37 @@
             "ครุภัณฑ์อื่นๆ": "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&q=80&w=400"
         };
 
-        // Check if there is a custom Firebase config saved in LocalStorage by the user
+        // Embedded Firebase Config (Your permanent system credentials)
+        const embedFirebaseConfig = {
+            apiKey: "AIzaSyC-S21yS_XaiOGzgmY_mojZolLOJy2rxNk",
+            authDomain: "budget-durable-2571.firebaseapp.com",
+            projectId: "budget-durable-2571",
+            storageBucket: "budget-durable-2571.firebasestorage.app",
+            messagingSenderId: "1069537784596",
+            appId: "1:1069537784596:web:4a9c5a4245bf2ded3a8801",
+            measurementId: "G-FF41443YS8"
+        };
+
+        // Retrieve config from storage if exists or fallback to the embedded production config
         const storedFirebaseConfig = localStorage.getItem('budget_custom_firebase');
-        let activeFirebaseConfig = null;
+        let activeFirebaseConfig = embedFirebaseConfig;
 
         if (storedFirebaseConfig) {
             try {
                 activeFirebaseConfig = JSON.parse(storedFirebaseConfig);
             } catch (e) {
                 console.error("Invalid stored Firebase config JSON", e);
-            }
-        } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-            // Environment supplied config
-            try {
-                activeFirebaseConfig = JSON.parse(__firebase_config);
-            } catch (e) {
-                console.error("Invalid environmental Firebase config JSON", e);
+                activeFirebaseConfig = embedFirebaseConfig;
             }
         }
 
-        // Initialize App & Auto fallback mechanism (Set a 3 seconds maximum wait)
+        // Initialize App & Auto fallback mechanism
         window.onload = async function() {
             lucide.createIcons();
             
             let connTimeout = setTimeout(() => {
                 if (dbMode === "local") {
-                    switchToLocalMode("เชื่อมต่อฐานข้อมูลล่าช้า สลับไปใช้งานแบบออฟไลน์เรียบร้อยแล้ว");
+                    switchToLocalMode("สลับการใช้งานมาเป็นโหมดออฟไลน์เพื่อความเร็วและความปลอดภัย");
                 }
             }, 3000); // 3 seconds timeout
 
@@ -515,9 +534,14 @@
                     firebaseAuth = getAuth(firebaseApp);
                     firebaseDb = getFirestore(firebaseApp);
 
-                    // Sign-In with customized token or anonymously
+                    // Sign-In with fallback mechanism to avoid auth/custom-token-mismatch
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(firebaseAuth, __initial_auth_token);
+                        try {
+                            await signInWithCustomToken(firebaseAuth, __initial_auth_token);
+                        } catch (tokenErr) {
+                            console.warn("Custom token authentication failed, falling back to anonymous sign-in:", tokenErr);
+                            await signInAnonymously(firebaseAuth);
+                        }
                     } else {
                         await signInAnonymously(firebaseAuth);
                     }
@@ -529,7 +553,7 @@
                             dbMode = "cloud";
                             userUid = authUser.uid;
                             
-                            document.getElementById('user-id-display').innerText = `Cloud ID: ${userUid.substring(0, 10)}...`;
+                            document.getElementById('user-id-display').innerText = `Cloud ID: ${userUid}`;
                             
                             // Visual bar update
                             const bar = document.getElementById('conn-status-bar');
@@ -563,22 +587,17 @@
             dbMode = "local";
             userUid = "Local-Session";
             
-            // Set User ID text
             document.getElementById('user-id-display').innerText = "ID: ออฟไลน์เซสชัน (บันทึกข้อมูลในเครื่อง)";
             
-            // Set connection warning bar
             const bar = document.getElementById('conn-status-bar');
             bar.className = "bg-blue-600 text-white text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
             document.getElementById('conn-status-text').innerHTML = `<i data-lucide='save' class='w-4 h-4 text-yellow-300'></i><span>${message}</span>`;
             
-            // Mode Badge update
             const badge = document.getElementById('database-mode-badge');
             badge.className = "bg-blue-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full font-title";
             badge.innerText = "โหมดออฟไลน์ (Local)";
             
             lucide.createIcons();
-
-            // Load items from Browser storage
             loadFromLocalStorage();
         }
 
@@ -592,19 +611,16 @@
                     requestsList = [];
                 }
             } else {
-                // Populate default mockup items for new users
                 populateDefaultData();
             }
             renderTable();
             updateDashboardStats();
         }
 
-        // Save states locally helper
         function saveToLocalStorage() {
             localStorage.setItem('durable_articles_requests_2571', JSON.stringify(requestsList));
         }
 
-        // Initialize dummy samples on first launch for Local Mode
         function populateDefaultData() {
             requestsList = [
                 {
@@ -649,7 +665,7 @@
             saveToLocalStorage();
         }
 
-        // Subscribe to Firestore Cloud database real-time (Rule 1, Rule 2, Rule 3 implementation)
+        // Subscribe to Firestore Cloud database real-time
         function subscribeToCloudDatabase() {
             if (!firebaseAuth.currentUser) return;
             
@@ -677,7 +693,7 @@
             event.preventDefault();
 
             const group = document.getElementById('management_group').value;
-            const work = document.getElementById('department_work').value; // Custom user typed text input
+            const work = document.getElementById('department_work').value;
             const category = document.getElementById('category').value;
             const itemName = document.getElementById('item_name').value;
             const unit = document.getElementById('unit').value;
@@ -732,7 +748,7 @@
                 try {
                     const requestsCollection = collection(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests');
                     await addDoc(requestsCollection, requestData);
-                    showToast("บันทึกข้อมูลยื่นคำขอขึ้น Cloud เรียบร้อย!", "success");
+                    showToast("ส่งคำขอขึ้นฐานข้อมูลออนไลน์แล้ว!", "success");
                     clearForm();
                 } catch (err) {
                     console.error("Cloud saving error, fallback to local:", err);
@@ -754,26 +770,87 @@
             clearForm();
         }
 
+        // UI Dialog System Instead of browser standard pops
+        function triggerConfirm(title, message, callback) {
+            const modal = document.getElementById('customDialogModal');
+            const iconBox = document.getElementById('dialog-icon-container');
+            const titleEl = document.getElementById('dialog-title');
+            const msgEl = document.getElementById('dialog-message');
+            const btnBox = document.getElementById('dialog-buttons');
+
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+            
+            iconBox.className = "mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-600";
+            iconBox.innerHTML = `<i data-lucide="help-circle" class="w-6 h-6"></i>`;
+
+            btnBox.innerHTML = `
+                <button id="confirm-cancel-btn" class="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-semibold hover:bg-slate-50 transition">ยกเลิก</button>
+                <button id="confirm-accept-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-md shadow-red-100">ยืนยัน</button>
+            `;
+
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+
+            document.getElementById('confirm-cancel-btn').onclick = function() {
+                modal.classList.add('hidden');
+            };
+
+            document.getElementById('confirm-accept-btn').onclick = function() {
+                modal.classList.add('hidden');
+                callback();
+            };
+        }
+
+        function triggerAlert(title, message) {
+            const modal = document.getElementById('customDialogModal');
+            const iconBox = document.getElementById('dialog-icon-container');
+            const titleEl = document.getElementById('dialog-title');
+            const msgEl = document.getElementById('dialog-message');
+            const btnBox = document.getElementById('dialog-buttons');
+
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+
+            iconBox.className = "mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600";
+            iconBox.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
+
+            btnBox.innerHTML = `
+                <button id="alert-close-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition">รับทราบ</button>
+            `;
+
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+
+            document.getElementById('alert-close-btn').onclick = function() {
+                modal.classList.add('hidden');
+            };
+        }
+
         // Delete function
-        window.deleteItem = async function(id) {
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบ?")) {
-                if (dbMode === "cloud" && id.indexOf("local-") === -1 && firebaseDb) {
-                    try {
-                        const docRef = doc(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests', id);
-                        await deleteDoc(docRef);
-                        showToast("ลบข้อมูลออกจากเซิร์ฟเวอร์ Cloud สำเร็จ", "success");
-                    } catch (err) {
-                        console.error("Cloud deletion error:", err);
-                        showToast("เกิดข้อผิดพลาดในการลบไฟล์จากระบบคลาวด์", "warning");
+        window.deleteItem = function(id) {
+            triggerConfirm(
+                "ต้องการลบรายการหรือไม่?",
+                "คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบอย่างถาวร?",
+                async function() {
+                    if (dbMode === "cloud" && id.indexOf("local-") === -1 && firebaseDb) {
+                        try {
+                            const docRef = doc(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests', id);
+                            await deleteDoc(docRef);
+                            showToast("ลบข้อมูลออกจากเซิร์ฟเวอร์ Cloud สำเร็จ", "success");
+                        } catch (err) {
+                            console.error("Cloud deletion error:", err);
+                            showToast("เกิดข้อผิดพลาดในการลบไฟล์จากระบบคลาวด์", "warning");
+                        }
+                    } else {
+                        requestsList = requestsList.filter(x => x.id !== id);
+                        saveToLocalStorage();
+                        renderTable();
+                        updateDashboardStats();
+                        showToast("ลบรายการออกจากเครื่องสำเร็จ", "info");
                     }
-                } else {
-                    requestsList = requestsList.filter(x => x.id !== id);
-                    saveToLocalStorage();
-                    renderTable();
-                    updateDashboardStats();
-                    showToast("ลบรายการออกจากเครื่องสำเร็จ", "info");
                 }
-            }
+            );
         };
 
         // Firebase Custom config Setup procedures
@@ -782,6 +859,8 @@
             const saved = localStorage.getItem('budget_custom_firebase');
             if (saved) {
                 input.value = saved;
+            } else {
+                input.value = JSON.stringify(embedFirebaseConfig, null, 2);
             }
             document.getElementById('configModal').classList.remove('hidden');
         };
@@ -795,23 +874,27 @@
             try {
                 const parsed = JSON.parse(rawVal);
                 if (!parsed.apiKey || !parsed.projectId) {
-                    alert("ข้อมูล Firebase Config JSON ไม่สมบูรณ์ กรุณาตรวจสอบ apiKey และ projectId");
+                    triggerAlert("ข้อมูลไม่สมบูรณ์", "กรุณาตรวจสอบว่ามีค่า apiKey และ projectId ครบถ้วน");
                     return;
                 }
                 localStorage.setItem('budget_custom_firebase', JSON.stringify(parsed));
-                alert("บันทึกข้อมูล Firebase คีย์สำเร็จ! หน้าจอจะรีเฟรชเพื่อเข้าสู่ฐานข้อมูลคลาวด์ของคุณ");
-                window.location.reload();
+                triggerAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อยแล้ว หน้าจอจะทำการรีเฟรชเข้าคลาวด์ตัวใหม่");
+                setTimeout(() => window.location.reload(), 1500);
             } catch (e) {
-                alert("ข้อมูลไม่อยู่ในฟอร์แมต JSON ที่ถูกต้อง กรุณาตรวจสอบวงเล็บปีกกาและเครื่องหมายอัญประกาศ");
+                triggerAlert("รูปแบบข้อมูลไม่ถูกต้อง", "กรุณาตรวจสอบเครื่องหมายปีกกาและเครื่องหมายอัญประกาศ");
             }
         };
 
         window.clearCustomFirebase = function() {
-            if (confirm("คุณต้องการยกเลิกการตั้งค่าฐานข้อมูลคลาวด์และกลับไปใช้งานออฟไลน์ใช่หรือไม่?")) {
-                localStorage.removeItem('budget_custom_firebase');
-                alert("ยกเลิกการเชื่อมต่อแล้ว หน้าจอจะรีเฟรชเพื่อกลับสู่โหมดบันทึกออฟไลน์ในเครื่อง");
-                window.location.reload();
-            }
+            triggerConfirm(
+                "ยกเลิกการเชื่อมต่อคลาวด์?",
+                "คุณต้องการกลับไปใช้คลาวด์เริ่มต้นแบบออฟไลน์/ออนไลน์ปกติใช่หรือไม่?",
+                function() {
+                    localStorage.removeItem('budget_custom_firebase');
+                    triggerAlert("สำเร็จ", "ระบบเปลี่ยนกลับไปใช้โปรเจกต์เดิมเรียบร้อยแล้ว กำลังเริ่มรีเฟรชหน้าจอ");
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            );
         };
 
         // Helper calculations
@@ -1128,7 +1211,7 @@
                                 <span>ไฟล์ใบเสนอราคา (3 ร้านใน 1 ไฟล์)</span>
                             </div>
                             <p class="text-[11px] font-semibold text-slate-600 truncate">${item.quotation_file_url}</p>
-                            <a href="#" onclick="alert('กำลังเปิดดูไฟล์ใบเสนอราคาที่รวบรวมไว้...')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
+                            <a href="#" onclick="triggerAlert('เอกสารแนบ', 'ใบเสนอราคาเอกสารแนบจำลองบน Cloud สำหรับตรวจสอบรายการ')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
                                 <i data-lucide="external-link" class="w-3.5 h-3.5 inline mr-1"></i>คลิกเพื่อเปิดเอกสารแนบ
                             </a>
                         </div>
@@ -1233,7 +1316,7 @@
                 `;
                 document.body.appendChild(modal);
             } else if (type === 'file') {
-                alert(`เปิดตรวจสอบเอกสารแนบออนไลน์สำหรับ:\n${item.item_name}\n\nเอกสารหลักฐาน: ${item.quotation_file_url}\n(รวมข้อมูลเปรียบเทียบทั้ง 3 ร้านค้า)`);
+                triggerAlert("ไฟล์เอกสารหลักฐานแนบ", `รายการ: ${item.item_name}\n\nเอกสาร: ${item.quotation_file_url}\n(เป็นหลักฐานรวมเปรียบเทียบทั้ง 3 ร้านค้า)`);
             }
         };
 
