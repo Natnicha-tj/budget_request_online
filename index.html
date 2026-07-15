@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS for Live Excel Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Sarabun', 'Prompt', sans-serif;
@@ -24,7 +26,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 
     <!-- Connection Status Bar (Dynamic Alert) -->
-    <div id="conn-status-bar" class="bg-amber-500 text-slate-900 text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2 transition-all duration-500">
+    <div id="conn-status-bar" class="bg-amber-500 text-slate-900 text-xs py-2.5 px-4 text-center font-semibold font-title flex items-center justify-center gap-2 transition-all duration-500">
         <span class="inline-block w-2 h-2 rounded-full bg-slate-900 animate-pulse"></span>
         <span id="conn-status-text">กำลังตรวจสอบสถานะการเชื่อมต่อฐานข้อมูล Cloud...</span>
     </div>
@@ -38,8 +40,8 @@
                         <i data-lucide="cloud-lightning" class="w-6 h-6 text-yellow-300"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg md:text-xl font-bold font-title tracking-wide">ระบบขอจัดตั้งงบประมาณครุภัณฑ์</h1>
-                        <p class="text-xs text-blue-200">ปีงบประมาณ พ.ศ. 2571 | เปรียบเทียบราคา 3 ร้านค้า</p>
+                        <h1 class="text-lg md:text-xl font-bold font-title tracking-wide">ระบบขอจัดตั้งงบประมาณครุภัณฑ์ 2571</h1>
+                        <p class="text-xs text-blue-200">เปรียบเทียบราคา 3 ร้านค้า & บัญชีครุภัณฑ์มาตรฐาน</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
@@ -49,6 +51,12 @@
                         </span>
                         <p class="text-[10px] text-slate-300 mt-0.5" id="user-id-display">ID: กำลังระบุตัวตน...</p>
                     </div>
+                    <!-- Excel Import Trigger Button -->
+                    <button onclick="openExcelImportModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold font-title flex items-center gap-1.5 transition shadow-sm">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        นำเข้า Excel
+                    </button>
+                    <!-- Settings Button -->
                     <button onclick="openConfigModal()" class="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition" title="ตั้งค่าการเชื่อมต่อคลาวด์">
                         <i data-lucide="settings" class="w-5 h-5 text-white"></i>
                     </button>
@@ -114,14 +122,26 @@
             <!-- Left Side: Form Section (5 Cols on Large Screen) -->
             <div class="lg:col-span-5 space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="bg-gradient-to-r from-indigo-700 to-blue-600 px-6 py-4 text-white flex justify-between items-center">
-                        <h2 class="text-md md:text-lg font-bold font-title flex items-center gap-2">
-                            <i data-lucide="form-input" class="w-5 h-5"></i>
-                            กรอกคำขอข้อมูลครุภัณฑ์
-                        </h2>
-                        <button type="button" onclick="loadDemoData()" class="text-xs bg-white/20 hover:bg-white/35 transition px-3 py-1.5 rounded-lg border border-white/20 font-medium">
-                            <i data-lucide="sparkles" class="w-3 h-3 inline-block mr-1 align-middle"></i>สุ่มตัวอย่าง
-                        </button>
+                    <div class="bg-gradient-to-r from-indigo-700 to-blue-600 px-6 py-4 text-white">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-md md:text-lg font-bold font-title flex items-center gap-2">
+                                <i data-lucide="form-input" class="w-5 h-5"></i>
+                                กรอกคำขอข้อมูลครุภัณฑ์
+                            </h2>
+                            <button type="button" onclick="loadDemoData()" class="text-xs bg-white/20 hover:bg-white/35 transition px-3 py-1.5 rounded-lg border border-white/20 font-medium">
+                                <i data-lucide="sparkles" class="w-3 h-3 inline-block mr-1 align-middle"></i>สุ่มตัวอย่าง
+                            </button>
+                        </div>
+                        
+                        <!-- Toggle Tab for Manual Entry vs Catalog Entry -->
+                        <div class="grid grid-cols-2 gap-2 mt-4 bg-slate-900/20 p-1 rounded-xl">
+                            <button type="button" id="mode-manual-btn" onclick="setEntryMode('manual')" class="py-2 text-xs font-bold rounded-lg transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>กรอกราคาเปรียบเทียบ (3 ร้าน)
+                            </button>
+                            <button type="button" id="mode-catalog-btn" onclick="setEntryMode('catalog')" class="py-2 text-xs font-bold rounded-lg transition text-white hover:bg-white/10 flex items-center justify-center gap-1.5">
+                                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>บัญชีมาตรฐาน/คลังนำเข้า
+                            </button>
+                        </div>
                     </div>
 
                     <form id="requestForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-5">
@@ -130,7 +150,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">1. กลุ่มบริหารงาน <span class="text-red-500">*</span></label>
-                                <select id="management_group" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                <select id="management_group" required onchange="onManagementGroupChange()" class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
                                     <option value="" disabled selected>-- เลือกกลุ่มงาน --</option>
                                     <option value="กลุ่มบริหารงานบุคคล">กลุ่มบริหารงานบุคคล</option>
                                     <option value="กลุ่มบริหารวิชาการ">กลุ่มบริหารวิชาการ</option>
@@ -141,34 +161,62 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">2. งาน/ฝ่ายย่อย <span class="text-red-500">*</span></label>
-                                <input type="text" id="department_work" placeholder="พิมพ์ชื่องานเอง เช่น งานไอที" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                <input type="text" id="department_work" placeholder="พิมพ์ชื่องานเอง เช่น งานธุรการ" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
                             </div>
                         </div>
 
-                        <!-- 3. ประเภทครุภัณฑ์ & 5. หน่วยนับ -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">3. ประเภทครุภัณฑ์ <span class="text-red-500">*</span></label>
-                                <select id="category" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
-                                    <option value="" disabled selected>-- เลือกประเภท --</option>
-                                    <option value="ครุภัณฑ์สำนักงาน">ครุภัณฑ์สำนักงาน</option>
-                                    <option value="ครุภัณฑ์คอมพิวเตอร์">ครุภัณฑ์คอมพิวเตอร์และดิจิทัล</option>
-                                    <option value="ครุภัณฑ์ยานพาหนะ">ครุภัณฑ์ยานพาหนะและขนส่ง</option>
-                                    <option value="ครุภัณฑ์ไฟฟ้าและวิทยุ">ครุภัณฑ์ไฟฟ้าและวิทยุ</option>
-                                    <option value="ครุภัณฑ์การศึกษา">ครุภัณฑ์การศึกษา/ฝึกทักษะ</option>
-                                    <option value="ครุภัณฑ์อื่นๆ">ครุภัณฑ์อื่นๆ</option>
-                                </select>
+                        <!-- เมนูดรอปดาวน์สำหรับค้นหาและเลือกรายการครุภัณฑ์มาตรฐาน (ซ่อนเริ่มต้น) -->
+                        <div id="catalog-picker-container" class="hidden bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-sm font-bold text-indigo-900">เลือกครุภัณฑ์จากบัญชีมาตรฐาน/คลังนำเข้า <span class="text-red-500">*</span></label>
+                                <button type="button" id="clear-custom-catalog-btn" onclick="clearCustomMasterCatalog()" class="hidden text-[10px] text-red-600 hover:underline flex items-center gap-0.5">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i>ล้างคลังนำเข้า
+                                </button>
                             </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">5. หน่วยนับ <span class="text-red-500">*</span></label>
-                                <input type="text" id="unit" placeholder="เช่น เครื่อง, ตัว, ชุด, ตู้" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                            <select id="catalog_item_picker" onchange="onCatalogItemChange()" class="w-full rounded-lg border-slate-200 bg-white text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                <option value="" disabled selected>-- ค้นหาหรือเลือกรายการครุภัณฑ์มาตรฐาน --</option>
+                            </select>
+                            
+                            <!-- Checkbox options for custom filtering by management group -->
+                            <div class="flex items-center justify-between mt-1 px-1">
+                                <label class="inline-flex items-center text-[11px] text-slate-500 cursor-pointer">
+                                    <input type="checkbox" id="filter-by-group-checkbox" checked onchange="populateCatalogDropdown()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 mr-1.5 w-3.5 h-3.5">
+                                    <span id="filter-label-text">กรองเฉพาะรายการที่แนะนำสำหรับกลุ่มงานนี้</span>
+                                </label>
                             </div>
+
+                            <p class="text-[11px] text-indigo-700 flex items-start gap-1">
+                                <i data-lucide="info" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-600"></i>
+                                <span>รายการในคลังได้รับการยกเว้นไม่ต้องส่งเอกสารเปรียบเทียบราคา 3 ร้านค้าเพิ่ม</span>
+                            </p>
                         </div>
 
-                        <!-- 4. รายการ -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">4. รายการครุภัณฑ์ (ระบุสเปกโดยย่อ) <span class="text-red-500">*</span></label>
-                            <input type="text" id="item_name" placeholder="เช่น เครื่องฟอกอากาศ ขนาดไม่น้อยกว่า 40 ตร.ม." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                        <div id="manual-items-container" class="space-y-4">
+                            <!-- 3. ประเภทครุภัณฑ์ & 5. หน่วยนับ -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">3. ประเภทครุภัณฑ์ <span class="text-red-500">*</span></label>
+                                    <select id="category" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                        <option value="" disabled selected>-- เลือกประเภท --</option>
+                                        <option value="ครุภัณฑ์สำนักงาน">ครุภัณฑ์สำนักงาน</option>
+                                        <option value="ครุภัณฑ์คอมพิวเตอร์">ครุภัณฑ์คอมพิวเตอร์และดิจิทัล</option>
+                                        <option value="ครุภัณฑ์ยานพาหนะ">ครุภัณฑ์ยานพาหนะและขนส่ง</option>
+                                        <option value="ครุภัณฑ์ไฟฟ้าและวิทยุ">ครุภัณฑ์ไฟฟ้าและวิทยุ</option>
+                                        <option value="ครุภัณฑ์การศึกษา">ครุภัณฑ์การศึกษา/ฝึกทักษะ</option>
+                                        <option value="ครุภัณฑ์อื่นๆ">ครุภัณฑ์อื่นๆ</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">5. หน่วยนับ <span class="text-red-500">*</span></label>
+                                    <input type="text" id="unit" placeholder="เช่น เครื่อง, ตัว, ชุด, ตู้" required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                                </div>
+                            </div>
+
+                            <!-- 4. รายการ -->
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">4. รายการครุภัณฑ์ (ระบุสเปกโดยย่อ) <span class="text-red-500">*</span></label>
+                                <input type="text" id="item_name" placeholder="เช่น เครื่องฟอกอากาศ ขนาดไม่น้อยกว่า 40 ตร.ม." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border">
+                            </div>
                         </div>
 
                         <!-- 6. ราคาต่อหน่วย ( 3 ร้านค้า) -->
@@ -176,12 +224,13 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-sm font-bold text-slate-800 flex items-center gap-1">
                                     <i data-lucide="store" class="w-4 h-4 text-indigo-600"></i>
-                                    6. ราคาต่อหน่วย (เปรียบเทียบราคา 3 ร้านค้า)
+                                    <span id="pricing-comparison-header">6. ราคาต่อหน่วย (เปรียบเทียบ 3 ร้านค้า)</span>
+                                    <span id="catalog-pricing-header" class="hidden text-indigo-900">6. ราคามาตรฐานต่อหน่วยจากคลังบัญชี</span>
                                 </span>
                                 <span class="text-xs text-slate-400">หน่วย: บาท</span>
                             </div>
                             
-                            <div class="grid grid-cols-3 gap-3">
+                            <div class="grid grid-cols-3 gap-3" id="prices-input-row">
                                 <div>
                                     <label class="block text-[11px] font-medium text-slate-500 mb-1">ร้านที่ 1</label>
                                     <input type="number" min="0" step="0.01" id="shop1_price" placeholder="0.00" oninput="calculatePricing()" required class="price-input w-full rounded-lg border-slate-200 bg-white text-slate-700 px-2.5 py-1.5 text-xs text-right font-semibold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition border">
@@ -196,8 +245,14 @@
                                 </div>
                             </div>
 
+                            <!-- Alert Box for Standard Catalog Single Pricing -->
+                            <div id="catalog-pricing-alert" class="hidden p-3 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center justify-between text-xs text-indigo-950">
+                                <span class="font-medium">ราคารายการมาตรฐานสำนักงบ:</span>
+                                <span id="catalog_price_badge" class="font-extrabold text-indigo-700">0.00 บาท</span>
+                            </div>
+
                             <!-- Selector for Best Price or Average -->
-                            <div class="pt-2 border-t border-slate-200 flex flex-col space-y-2">
+                            <div class="pt-2 border-t border-slate-200 flex flex-col space-y-2" id="pricing-criteria-selector">
                                 <label class="block text-xs font-semibold text-slate-600">ราคาต่อหน่วยที่จะเลือกใช้จริง:</label>
                                 <div class="grid grid-cols-2 gap-2">
                                     <label class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-indigo-50/50 transition">
@@ -209,10 +264,11 @@
                                         <span class="text-xs text-slate-600 font-medium">ราคาเฉลี่ย 3 ร้าน</span>
                                     </label>
                                 </div>
-                                <div class="flex items-center justify-between px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100 mt-1">
-                                    <span class="text-xs font-bold text-indigo-900">ราคาต่อหน่วยวิเคราะห์เสร็จสิ้น:</span>
-                                    <span class="text-sm font-extrabold text-indigo-700" id="selected_unit_price">0.00 บาท</span>
-                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100 mt-1">
+                                <span class="text-xs font-bold text-indigo-900">ราคาต่อหน่วยสุทธิที่จะขอตั้ง:</span>
+                                <span class="text-sm font-extrabold text-indigo-700" id="selected_unit_price">0.00 บาท</span>
                             </div>
                         </div>
 
@@ -234,7 +290,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- 7. รูปภาพ -->
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">7. รูปภาพครุภัณฑ์ <span class="text-slate-400 font-normal">(อัปโหลด/จำลอง)</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">7. รูปภาพครุภัณฑ์ <span class="text-slate-400 font-normal">(จำลองตัวอย่าง)</span></label>
                                 <div class="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-white rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center h-28" onclick="document.getElementById('image_file').click()">
                                     <input type="file" id="image_file" accept="image/*" class="hidden" onchange="previewImage(this)">
                                     <div id="image_preview_box" class="flex flex-col items-center">
@@ -254,13 +310,20 @@
 
                             <!-- 8. ใบเสนอราคา -->
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">8. ใบเสนอราคา (3 ร้าน/1 ไฟล์) <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">8. เอกสารสืบราคาแนบ <span class="text-red-500">*</span></label>
                                 <div class="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-white rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center h-28" onclick="document.getElementById('quotation_file').click()">
                                     <input type="file" id="quotation_file" accept=".pdf,.doc,.docx" class="hidden" onchange="previewFile(this)">
-                                    <div id="file_preview_box" class="flex flex-col items-center">
+                                    <!-- Default Prompt for Manual -->
+                                    <div id="quotation-upload-box" class="flex flex-col items-center">
                                         <i data-lucide="file-text" class="w-6 h-6 text-slate-400 mb-1"></i>
-                                        <span class="text-[11px] text-slate-500 font-medium">คลิกอัปโหลดใบเสนอราคา</span>
+                                        <span class="text-[11px] text-slate-500 font-medium">อัปโหลดใบเสนอราคา</span>
                                         <span class="text-[9px] text-slate-400">PDF (รวมใบเสนอราคา 3 ร้าน)</span>
+                                    </div>
+                                    <!-- Auto-Filled Standard File Note -->
+                                    <div id="quotation-catalog-box" class="hidden flex flex-col items-center text-indigo-700">
+                                        <i data-lucide="shield-check" class="w-6 h-6 mb-1 text-indigo-600"></i>
+                                        <span class="text-[11px] font-bold">ยกเว้นสืบราคา 3 ร้านค้า</span>
+                                        <span class="text-[9px] text-indigo-500 leading-tight">ใช้เอกสารเกณฑ์มาตรฐานกลาง</span>
                                     </div>
                                     <div id="file_preview_active" class="hidden absolute inset-0 w-full h-full p-2 bg-white rounded-xl flex items-center justify-between border border-slate-200">
                                         <div class="flex items-center space-x-2 text-left overflow-hidden">
@@ -284,7 +347,7 @@
                         <!-- 11. เหตุผลความจำเป็น -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">11. เหตุผลความจำเป็นในการขอจัดตั้งงบประมาณ <span class="text-red-500">*</span></label>
-                            <textarea id="reason_necessity" rows="3" placeholder="โปรดระบุรายละเอียดความคุ้มค่า ความจำเป็น..." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border"></textarea>
+                            <textarea id="reason_necessity" rows="3" placeholder="โปรดระบุรายละเอียดความคุ้มค่า ความจำเป็นในการใช้งาน..." required class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-700 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition border"></textarea>
                         </div>
 
                         <!-- Action Buttons -->
@@ -377,6 +440,94 @@
         </div>
     </main>
 
+    <!-- Excel Import Modal -->
+    <div id="excelImportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden transform scale-95 transition-all duration-300 max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-emerald-700 px-6 py-4 text-white flex items-center justify-between shrink-0">
+                <h3 class="text-md font-bold font-title flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="text-yellow-300 w-5 h-5"></i>
+                    นำเข้าไฟล์ Excel ทะเบียนครุภัณฑ์ งบประมาณ 2571
+                </h3>
+                <button onclick="closeExcelImportModal()" class="text-slate-200 hover:text-white p-1 rounded transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4 overflow-y-auto text-sm flex-1">
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    อัปโหลดไฟล์ Excel ของคุณ ระบบจะประมวลผล คัดแยกประเภท และคำนวณราคาเฉลี่ย/ต่ำสุดให้โดยอัตโนมัติ โดยท่านสามารถเลือกวัตถุประสงค์การนำเข้าได้ด้านล่างนี้:
+                </p>
+
+                <!-- Import Option Selector -->
+                <div class="bg-slate-100 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                    <label class="block text-xs font-bold text-slate-700">วัตถุประสงค์การนำเข้าข้อมูล Excel:</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <label class="flex items-start space-x-2 bg-white p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-emerald-500 transition shadow-sm">
+                            <input type="radio" name="excel_import_purpose" value="master-catalog" checked class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">1. นำเข้าเป็น "คลังครุภัณฑ์สะสม"</p>
+                                <p class="text-[9.5px] text-slate-500 mt-0.5">เพิ่มเข้าสู่ระบบ เพื่อให้กลุ่มงานย่อยเข้ามาคลิกเลือกขอตั้งงบประมาณได้ในภายหลัง</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start space-x-2 bg-white p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-500 transition shadow-sm">
+                            <input type="radio" name="excel_import_purpose" value="direct-requests" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">2. นำเข้าเป็น "รายการยื่นคำขอตรง"</p>
+                                <p class="text-[9.5px] text-slate-500 mt-0.5">บันทึกเป็นใบคำขอจัดตั้งงบประมาณสำเร็จเข้าระบบออนไลน์เลยทันทีตามตารางข้อมูล</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Dropzone Area -->
+                <div id="excel-dropzone" class="border-2 border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50/40 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[140px]" onclick="document.getElementById('excel_file_input').click()">
+                    <input type="file" id="excel_file_input" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(this)">
+                    <div class="p-3 bg-emerald-100 text-emerald-700 rounded-full mb-2">
+                        <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700">คลิกเพื่อเลือกไฟล์ หรือ ลากวางไฟล์ Excel ที่นี่</span>
+                    <span class="text-[10px] text-slate-400 mt-1">รองรับไฟล์ประเภท .xlsx หรือ .xls</span>
+                </div>
+
+                <!-- Analysis Summary Area (Initially Hidden) -->
+                <div id="excel-analysis-summary" class="hidden p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1"><i data-lucide="check-circle-2" class="text-emerald-600 w-4.5 h-4.5"></i>ตรวจวิเคราะห์ไฟล์เสร็จสมบูรณ์</span>
+                        <button type="button" onclick="resetExcelUploadBox()" class="text-xs text-red-500 hover:underline">เปลี่ยนไฟล์</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="bg-indigo-50 p-2.5 rounded-lg border border-indigo-100">
+                            <span class="text-[10px] text-indigo-700 font-bold block">ตรงบัญชีมาตรฐาน</span>
+                            <span id="excel-count-standard" class="text-base font-extrabold text-indigo-800">0 รายการ</span>
+                        </div>
+                        <div class="bg-amber-50 p-2.5 rounded-lg border border-amber-100">
+                            <span class="text-[10px] text-amber-700 font-bold block">นอกบัญชีมาตรฐาน</span>
+                            <span id="excel-count-custom" class="text-base font-extrabold text-amber-800">0 รายการ</span>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-xs font-bold text-slate-600 block">ตัวอย่างรายการที่ตรวจพบ (สูงสุด 10 รายการแรก):</span>
+                        <div id="excel-items-preview" class="border rounded-lg bg-white divide-y overflow-y-auto max-h-[160px]">
+                            <!-- Real-time Preview Rows -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-2 shrink-0">
+                <button onclick="closeExcelImportModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 text-xs font-bold rounded-lg transition">
+                    ยกเลิก
+                </button>
+                <button id="excel-confirm-btn" onclick="commitExcelImport()" disabled class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition shadow-md">
+                    ยืนยันการนำเข้าข้อมูล
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Cloud Connection Setup Modal -->
     <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform scale-95 transition-all duration-300">
@@ -391,7 +542,7 @@
             </div>
             <div class="p-6 space-y-4 text-sm">
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    คุณสามารถเปลี่ยนฐานข้อมูลคลาวด์ได้ด้วยการวางข้อความ <strong>Firebase Config</strong> JSON ของคุณในช่องด้านล่างนี้:
+                    คุณสามารถเปลี่ยนระบบนี้ให้กลายเป็นระบบเชื่อมต่อ Cloud ทันที เพื่อแชร์ให้ทุกคนกรอกข้อมูลร่วมกันออนไลน์ได้ฟรี โดยวางค่า <strong>Firebase Config</strong> ของคุณลงในช่องด้านล่างนี้:
                 </p>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Firebase Configuration (JSON):</label>
@@ -403,10 +554,6 @@
   "messagingSenderId": "...",
   "appId": "..."
 }' class="w-full font-mono text-[11px] p-3 border border-slate-200 bg-slate-50 rounded-xl outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition"></textarea>
-                </div>
-                <div class="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100 text-xs">
-                    <span class="font-semibold text-indigo-900">มีสัญลักษณ์ Cloud:</span>
-                    <span class="text-slate-500 text-[10px] text-right">เซฟค่าระบบจะโหลดหน้ารีเซ็ตเพื่อเริ่มใช้งาน</span>
                 </div>
             </div>
             <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end space-x-2">
@@ -448,16 +595,31 @@
         </div>
     </div>
 
-    <!-- Custom Alert & Confirm Dialog Modal (Standard Popups Replacements) -->
-    <div id="customDialogModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-6 text-center space-y-4 transform scale-95 transition-all duration-300">
-            <div id="dialog-icon-container" class="mx-auto w-12 h-12 rounded-full flex items-center justify-center">
-                <!-- Icon will be injected here -->
+    <!-- Dialog Confirmation Box -->
+    <div id="confirmDialog" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+            <div class="p-3 bg-red-100 text-red-600 rounded-full inline-block">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
             </div>
-            <h4 id="dialog-title" class="text-base font-bold font-title text-slate-800">หัวข้อยืนยัน</h4>
-            <p id="dialog-message" class="text-xs text-slate-500 leading-relaxed">ข้อความแจ้งเตือน</p>
-            <div class="flex items-center justify-center gap-2 pt-2" id="dialog-buttons">
-                <!-- Buttons will be injected here -->
+            <h3 class="text-md font-bold font-title text-slate-800" id="confirm-title">ยืนยันการทำรายการ</h3>
+            <p class="text-xs text-slate-500 leading-relaxed" id="confirm-desc">คุณแน่ใจที่จะลบข้อมูลนี้หรือไม่?</p>
+            <div class="flex justify-center gap-3 pt-2">
+                <button onclick="closeConfirmDialog()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition">ยกเลิก</button>
+                <button id="confirm-action-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Dialog Box (Fallback for alert) -->
+    <div id="alertDialog" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+            <div class="p-3 bg-indigo-100 text-indigo-600 rounded-full inline-block" id="alert-icon-container">
+                <i data-lucide="info" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-md font-bold font-title text-slate-800" id="alert-title">ข้อความแจ้งเตือน</h3>
+            <p class="text-xs text-slate-500 leading-relaxed" id="alert-desc">ข้อมูลระบุข้อความเสร็จสิ้น</p>
+            <div class="flex justify-center pt-2">
+                <button onclick="closeAlertDialog()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
@@ -481,6 +643,318 @@
         let firebaseAuth = null;
         let firebaseDb = null;
         let userUid = "Local-Session";
+        let currentEntryMode = "manual"; // manual | catalog
+        let excelParsedList = []; // Temporary holding list for Excel parsed results
+        let customMasterCatalog = []; // คลังครุภัณฑ์สะสมที่นำเข้าจาก Excel เพื่อให้กลุ่มงานเลือก
+
+        // ฐานข้อมูลบัญชีมาตรฐานสำนักงบประมาณประจำปี พ.ศ. 2571 ที่จับคู่หมวดหมู่และหน่วยแนะนำหลักเกณฑ์กลุ่มงานแล้ว
+        const standardCatalog = [
+            // === ครุภัณฑ์สำนักงาน ===
+            { id: "std-of-1", name: "ตู้เหล็ก แบบ 4 ลิ้นชัก", category: "ครุภัณฑ์สำนักงาน", unit: "ตู้", price: 7200, group: "กลุ่มบริหารงานบุคคล" },
+            { id: "std-of-2", name: "ตู้เหล็ก แบบ 2 ประตู (บานกระจก)", category: "ครุภัณฑ์สำนักงาน", unit: "ตู้", price: 7500, group: "กลุ่มอำนวยการ" },
+            { id: "std-of-3", name: "เครื่องปรับอากาศ แบบติดผนัง (ระบบ Inverter) ขนาด 12,000 บีทียู", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 19500, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-of-4", name: "เครื่องปรับอากาศ แบบติดผนัง (ระบบ Inverter) ขนาด 18,000 บีทียู", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 27900, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-of-5", name: "เครื่องปรับอากาศ แบบติดผนัง (ระบบ Inverter) ขนาด 24,000 บีทียู", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 34000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-of-6", name: "เครื่องฟอกอากาศ สำหรับห้องขนาด 40 ตารางเมตร", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 11500, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-of-7", name: "เครื่องทำลายเอกสาร แบบตัดละเอียด (Cross-Cut)", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 18000, group: "กลุ่มบริหารงานบุคคล" },
+            { id: "std-of-8", name: "ตู้เซฟเก็บเอกสารสำคัญ กันไฟไม่น้อยกว่า 2 ชั่วโมง", category: "ครุภัณฑ์สำนักงาน", unit: "ตู้", price: 25000, group: "กลุ่มอำนวยการ" },
+            { id: "std-of-9", name: "โต๊ะทำงานเหล็ก ขนาด 4 ฟุต พร้อมลิ้นชัก", category: "ครุภัณฑ์สำนักงาน", unit: "ตัว", price: 5800, group: "กลุ่มอำนวยการ" },
+            { id: "std-of-10", name: "เก้าอี้ทำงาน มีพนักพิงปรับระดับได้ด้วยโช้คแก๊ส", category: "ครุภัณฑ์สำนักงาน", unit: "ตัว", price: 3200, group: "กลุ่มบริหารงานบุคคล" },
+            { id: "std-of-11", name: "รถเข็นชนิดนั่ง (Wheelchair)", category: "ครุภัณฑ์สำนักงาน", unit: "คัน", price: 7500, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-of-12", name: "เครื่องชั่งน้ำหนักดิจิทัลพร้อมที่วัดส่วนสูง", category: "ครุภัณฑ์สำนักงาน", unit: "เครื่อง", price: 20000, group: "กลุ่มบริหารทั่วไป" },
+
+            // === ครุภัณฑ์คอมพิวเตอร์และดิจิทัล ===
+            { id: "std-com-1", name: "เครื่องคอมพิวเตอร์ สำหรับงานสำนักงาน (จอไม่น้อยกว่า 19 นิ้ว)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "ชุด", price: 22000, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-com-2", name: "เครื่องคอมพิวเตอร์ สำหรับงานประมวลผลประสิทธิภาพสูง", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "ชุด", price: 30000, group: "กลุ่มแผนงานและงบประมาณ" },
+            { id: "std-com-3", name: "เครื่องคอมพิวเตอร์โน้ตบุ๊ก สำหรับงานสำนักงานทั่วไป", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 21000, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-com-4", name: "เครื่องคอมพิวเตอร์โน้ตบุ๊ก สำหรับงานประมวลผลหนัก", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 28000, group: "กลุ่มแผนงานและงบประมาณ" },
+            { id: "std-com-5", name: "เครื่องพิมพ์แบบเลเซอร์ ขาวดำ (20 แผ่นต่อนาที)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 3900, group: "กลุ่มอำนวยการ" },
+            { id: "std-com-6", name: "เครื่องพิมพ์แบบเลเซอร์ สี (15 แผ่นต่อนาที)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 11000, group: "กลุ่มแผนงานและงบประมาณ" },
+            { id: "std-com-7", name: "เครื่องพิมพ์อิงค์เจ็ทแบบถังหมึกแท้ (Ink Tank Printer)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 4800, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-com-8", name: "เครื่องสแกนเนอร์สำหรับงานเอกสารแบบแท่นราบ (Flatbed)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 4200, group: "กลุ่มอำนวยการ" },
+            { id: "std-com-9", name: "เครื่องสำรองไฟฟ้า (UPS) ขนาด 800 VA", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 3500, group: "กลุ่มแผนงานและงบประมาณ" },
+            { id: "std-com-10", name: "แท็บเล็ตเพื่อการทำงานเคลื่อนที่ (จอไม่น้อยกว่า 10 นิ้ว)", category: "ครุภัณฑ์คอมพิวเตอร์", unit: "เครื่อง", price: 16000, group: "กลุ่มบริหารวิชาการ" },
+
+            // === ครุภัณฑ์ยานพาหนะและขนส่ง ===
+            { id: "std-veh-1", name: "รถจักรยานยนต์ ขนาดไม่น้อยกว่า 110 ซีซี เกียร์ธรรมดา", category: "ครุภัณฑ์ยานพาหนะ", unit: "คัน", price: 43500, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-veh-2", name: "รถจักรยานยนต์ ขนาดไม่น้อยกว่า 125 ซีซี เกียร์ออโตเมติก", category: "ครุภัณฑ์ยานพาหนะ", unit: "คัน", price: 52000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-veh-3", name: "รถบรรทุก (ดีเซล) ขนาด 1 ตัน ขับเคลื่อน 2 ล้อ มีแค็บ (Cab)", category: "ครุภัณฑ์ยานพาหนะ", unit: "คัน", price: 604000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-veh-4", name: "รถบรรทุก (ดีเซล) ขนาด 1 ตัน ขับเคลื่อน 4 ล้อ ดับเบิ้ลแค็บ (4 ประตู)", category: "ครุภัณฑ์ยานพาหนะ", unit: "คัน", price: 824000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-veh-5", name: "รถตู้โดยสาร เครื่องยนต์ดีเซล ขนาดไม่น้อยกว่า 11 ที่นั่ง", category: "ครุภัณฑ์ยานพาหนะ", unit: "คัน", price: 1150000, group: "กลุ่มบริหารทั่วไป" },
+
+            // === ครุภัณฑ์ไฟฟ้าและวิทยุ ===
+            { id: "std-el-1", name: "โทรทัศน์ แอล อี ดี Smart TV ขนาด 43 นิ้ว", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 14400, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-el-2", name: "โทรทัศน์ แอล อี ดี Smart TV ขนาด 50 นิ้ว", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 18300, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-el-3", name: "โทรทัศน์ แอล อี ดี Smart TV ขนาด 55 นิ้ว", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 22000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-el-4", name: "เครื่องโปรเจกเตอร์มัลติมีเดีย ระดับ XGA ขนาด 3,000 Lumens", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 23300, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-el-5", name: "เครื่องรับ-ส่งวิทยุระบบ VHF/FM ชนิดมือถือ 5 วัตต์", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 12000, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-el-6", name: "เครื่องขยายเสียงประชุม ขนาดไม่น้อยกว่า 100 วัตต์", category: "ครุภัณฑ์ไฟฟ้าและวิทยุ", unit: "เครื่อง", price: 15000, group: "กลุ่มบริหารทั่วไป" },
+
+            // === ครุภัณฑ์การศึกษา ===
+            { id: "std-edu-1", name: "ชุดกระดานอินเตอร์แอคทีฟบอร์ด (Interactive Board) 75 นิ้ว", category: "ครุภัณฑ์การศึกษา", unit: "ชุด", price: 89000, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-edu-2", name: "ชุดโต๊ะและเก้าอี้นักเรียนระดับประถมศึกษา (ชนิดพลาสติก)", category: "ครุภัณฑ์การศึกษา", unit: "ชุด", price: 1800, group: "กลุ่มบริหารวิชาการ" },
+            { id: "std-edu-3", name: "ชุดโต๊ะและเก้าอี้นักเรียนระดับมัธยมศึกษา (ชนิดโครงเหล็ก)", category: "ครุภัณฑ์การศึกษา", unit: "ชุด", price: 2200, group: "กลุ่มบริหารวิชาการ" },
+
+            // === ครุภัณฑ์อื่นๆ ===
+            { id: "std-oth-1", name: "เครื่องสูบน้ำ แบบหอยโข่ง เครื่องยนต์เบนซิน (450 ลิตร/นาที)", category: "ครุภัณฑ์อื่นๆ", unit: "เครื่อง", price: 6800, group: "กลุ่มบริหารทั่วไป" },
+            { id: "std-oth-5", name: "เครื่องตัดหญ้า แบบสะพายบ่า เครื่องยนต์เบนซิน 2 จังหวะ", category: "ครุภัณฑ์อื่นๆ", unit: "เครื่อง", price: 8900, group: "กลุ่มบริหารทั่วไป" }
+        ];
+
+        // Excel upload UI modal controls
+        window.openExcelImportModal = function() {
+            document.getElementById('excel_file_input').value = "";
+            document.getElementById('excel-analysis-summary').classList.add('hidden');
+            document.getElementById('excel-dropzone').classList.remove('hidden');
+            document.getElementById('excel-confirm-btn').setAttribute('disabled', 'true');
+            excelParsedList = [];
+            
+            document.getElementById('excelImportModal').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.closeExcelImportModal = function() {
+            document.getElementById('excelImportModal').classList.add('hidden');
+        };
+
+        window.resetExcelUploadBox = function() {
+            document.getElementById('excel_file_input').value = "";
+            document.getElementById('excel-analysis-summary').classList.add('hidden');
+            document.getElementById('excel-dropzone').classList.remove('hidden');
+            document.getElementById('excel-confirm-btn').setAttribute('disabled', 'true');
+            excelParsedList = [];
+        };
+
+        // Live Excel parser logic using SheetJS
+        window.handleExcelUpload = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Retrieve first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert sheet content to 2D array matrix
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    
+                    if (rows.length < 2) {
+                        triggerAlert("ไฟล์ว่างเปล่า", "ไฟล์ Excel ไม่มีแถวของข้อมูลเพียงพอ โปรดตรวจสอบเอกสารอีกครั้ง");
+                        return;
+                    }
+                    
+                    parseExcelRows(rows);
+                } catch (error) {
+                    console.error("SheetJS parsing exception:", error);
+                    triggerAlert("ประมวลผลล้มเหลว", "เกิดความขัดข้องในการอ่านข้อมูลชีตของไฟล์ Excel นี้");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // Analyze Excel rows & map headers intelligently
+        function parseExcelRows(rows) {
+            // Retrieve headers safely
+            const headers = rows[0].map(h => String(h || "").trim().toLowerCase());
+            
+            let idxItemName = -1;
+            let idxCategory = -1;
+            let idxUnit = -1;
+            let idxQty = -1;
+            let idxSource = -1;
+            let idxPrice = -1;
+            let idxShop1 = -1;
+            let idxShop2 = -1;
+            let idxShop3 = -1;
+            let idxReason = -1;
+            let idxGroup = -1;
+
+            // Map standard Thai & English column indexes
+            headers.forEach((h, i) => {
+                if (h.includes("รายการ") || h.includes("ชื่อครุภัณฑ์") || h.includes("item") || h.includes("name")) idxItemName = i;
+                else if (h.includes("ประเภท") || h.includes("หมวด") || h.includes("category")) idxCategory = i;
+                else if (h.includes("หน่วย") || h.includes("unit")) idxUnit = i;
+                else if (h.includes("จำนวน") || h.includes("qty") || h.includes("quantity")) idxQty = i;
+                else if (h.includes("ที่มา") || h.includes("แหล่ง") || h.includes("ประเภทบัญชี") || h.includes("source")) idxSource = i;
+                else if (h.includes("ราคากลาง") || h.includes("ราคาต่อหน่วย") || h.includes("ราคา") || h.includes("price")) idxPrice = i;
+                else if (h.includes("ร้าน 1") || h.includes("ร้านที่ 1") || h.includes("shop1")) idxShop1 = i;
+                else if (h.includes("ร้าน 2") || h.includes("ร้านที่ 2") || h.includes("shop2")) idxShop2 = i;
+                else if (h.includes("ร้าน 3") || h.includes("ร้านที่ 3") || h.includes("shop3")) idxShop3 = i;
+                else if (h.includes("เหตุผล") || h.includes("ความจำเป็น") || h.includes("reason")) idxReason = i;
+                else if (h.includes("กลุ่ม") || h.includes("หน่วยงาน") || h.includes("ฝ่าย") || h.includes("workgroup") || h.includes("department")) idxGroup = i;
+            });
+
+            // Set fallback rules if matching fails
+            if (idxItemName === -1) idxItemName = 0;
+            if (idxPrice === -1) idxPrice = idxShop1 !== -1 ? idxShop1 : 1; 
+
+            excelParsedList = [];
+            let countStandard = 0;
+            let countCustom = 0;
+
+            // Loop starting from index 1 (skipping headers row)
+            for (let r = 1; r < rows.length; r++) {
+                const row = rows[r];
+                if (!row || row.length === 0 || !row[idxItemName]) continue;
+
+                const itemNameRaw = String(row[idxItemName]).trim();
+                if (itemNameRaw === "" || itemNameRaw === "undefined") continue;
+
+                const rawSource = idxSource !== -1 ? String(row[idxSource] || "") : "";
+                const rawCategory = idxCategory !== -1 ? String(row[idxCategory] || "ครุภัณฑ์สำนักงาน") : "ครุภัณฑ์สำนักงาน";
+                const rawUnit = idxUnit !== -1 ? String(row[idxUnit] || "เครื่อง") : "เครื่อง";
+                const rawQty = idxQty !== -1 ? parseInt(row[idxQty]) || 1 : 1;
+                const rawReason = idxReason !== -1 ? String(row[idxReason] || "สนับสนุนการปฏิบัติงานย่อย") : "สนับสนุนการเรียนการสอนและอำนวยการระบบ";
+                
+                // Group alignment
+                let rawGroup = idxGroup !== -1 ? String(row[idxGroup] || "").trim() : "";
+                if (rawGroup.includes("บุคคล") || rawGroup.includes("HR") || rawGroup.includes("person")) rawGroup = "กลุ่มบริหารงานบุคคล";
+                else if (rawGroup.includes("วิชาการ") || rawGroup.includes("academic") || rawGroup.includes("acad")) rawGroup = "กลุ่มบริหารวิชาการ";
+                else if (rawGroup.includes("อำนวยการ") || rawGroup.includes("admin")) rawGroup = "กลุ่มอำนวยการ";
+                else if (rawGroup.includes("แผน") || rawGroup.includes("งบ") || rawGroup.includes("plan")) rawGroup = "กลุ่มแผนงานและงบประมาณ";
+                else if (rawGroup.includes("ทั่วไป") || rawGroup.includes("general")) rawGroup = "กลุ่มบริหารทั่วไป";
+                else rawGroup = "กลุ่มบริหารทั่วไป"; 
+
+                // Resolve Prices
+                const priceUnit = idxPrice !== -1 ? parseFloat(row[idxPrice]) || 0 : 0;
+                const shop1 = idxShop1 !== -1 ? parseFloat(row[idxShop1]) || priceUnit : priceUnit;
+                const shop2 = idxShop2 !== -1 ? parseFloat(row[idxShop2]) || priceUnit : priceUnit;
+                const shop3 = idxShop3 !== -1 ? parseFloat(row[idxShop3]) || priceUnit : priceUnit;
+
+                // Standard verification
+                let isStandard = false;
+                if (rawSource.includes("สำนักงบ") || rawSource.includes("มาตรฐาน") || rawSource.includes("งปม") || rawSource.includes("standard")) {
+                    isStandard = true;
+                } else {
+                    const catalogMatch = standardCatalog.find(item => itemNameRaw.toLowerCase().includes(item.name.toLowerCase()));
+                    if (catalogMatch) {
+                        isStandard = true;
+                    }
+                }
+
+                if (isStandard) countStandard++; else countCustom++;
+
+                excelParsedList.push({
+                    fiscal_year: 2571,
+                    management_group: rawGroup,
+                    department_work: "ฝ่ายงานของกลุ่ม (ระบบนำเข้า)",
+                    category: rawCategory,
+                    item_name: itemNameRaw,
+                    quantity: rawQty,
+                    unit: rawUnit,
+                    shop1_price: shop1,
+                    shop2_price: isStandard ? shop1 : shop2,
+                    shop3_price: isStandard ? shop1 : shop3,
+                    price_choice: "lowest",
+                    selected_price: isStandard ? shop1 : Math.min(shop1, shop2, shop3),
+                    total_budget: (isStandard ? shop1 : Math.min(shop1, shop2, shop3)) * rawQty,
+                    image_url: mockImages[rawCategory] || mockImages["ครุภัณฑ์สำนักงาน"],
+                    quotation_file_url: isStandard ? "standard_budget_catalog_2571_exempted.pdf" : `quotation_excel_import_${Date.now().toString().slice(-4)}.pdf`,
+                    reason_necessity: rawReason,
+                    is_standard: isStandard,
+                    created_by: userUid,
+                    timestamp: Date.now() + r
+                });
+            }
+
+            // Set stats summary in modal
+            document.getElementById('excel-count-standard').innerText = `${countStandard} รายการ`;
+            document.getElementById('excel-count-custom').innerText = `${countCustom} รายการ`;
+
+            const previewBox = document.getElementById('excel-items-preview');
+            previewBox.innerHTML = "";
+
+            excelParsedList.slice(0, 10).forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "p-2 text-[11px] flex justify-between items-center bg-white hover:bg-slate-50";
+                itemDiv.innerHTML = `
+                    <div class="truncate max-w-[340px]">
+                        <p class="font-semibold text-slate-800 truncate">${item.item_name}</p>
+                        <p class="text-[9px] text-slate-400">กลุ่ม: ${item.management_group} | หมวด: ${item.category}</p>
+                    </div>
+                    <div class="text-right shrink-0 ml-2">
+                        <p class="font-bold font-title text-emerald-700">${formatThaiCurrency(item.total_budget)}</p>
+                        <span class="inline-block bg-indigo-50 text-indigo-700 text-[8px] font-bold px-1.5 py-0.2 rounded">${item.is_standard ? "ในบัญชี" : "นอกบัญชี"}</span>
+                    </div>
+                `;
+                previewBox.appendChild(itemDiv);
+            });
+
+            if (excelParsedList.length > 10) {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = "p-2 bg-slate-50 text-center text-[10px] text-slate-500 font-semibold italic";
+                moreDiv.innerText = `... และรายการอื่นๆ อีก ${excelParsedList.length - 10} รายการ ...`;
+                previewBox.appendChild(moreDiv);
+            }
+
+            // Show preview results and activate buttons
+            document.getElementById('excel-dropzone').classList.add('hidden');
+            document.getElementById('excel-analysis-summary').classList.remove('hidden');
+            document.getElementById('excel-confirm-btn').removeAttribute('disabled');
+        }
+
+        // Commiting the imported Excel list to database or custom selection catalog
+        window.commitExcelImport = async function() {
+            if (excelParsedList.length === 0) return;
+
+            const importPurpose = document.querySelector('input[name="excel_import_purpose"]:checked').value;
+
+            if (importPurpose === "master-catalog") {
+                let addedCount = 0;
+                excelParsedList.forEach(item => {
+                    const newItem = {
+                        id: "custom-std-" + Date.now() + Math.random().toString(36).slice(-4),
+                        name: item.item_name,
+                        category: item.category,
+                        unit: item.unit,
+                        price: item.selected_price,
+                        group: item.management_group,
+                        is_custom: true
+                    };
+                    customMasterCatalog.push(newItem);
+                    addedCount++;
+                });
+
+                localStorage.setItem('durable_custom_master_catalog_2571', JSON.stringify(customMasterCatalog));
+                populateCatalogDropdown();
+
+                showToast(`นำเข้าคลังครุภัณฑ์สะสมสำเร็จ ${addedCount} รายการ!`, "success");
+                closeExcelImportModal();
+            } else {
+                let addedCount = 0;
+                if (dbMode === "cloud" && firebaseDb) {
+                    try {
+                        const requestsCollection = collection(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests');
+                        for (const item of excelParsedList) {
+                            await addDoc(requestsCollection, item);
+                            addedCount++;
+                        }
+                        showToast(`นำเข้าสำเร็จ ${addedCount} รายการ ยื่นตรงเข้าระบบออนไลน์เรียบร้อย!`, "success");
+                    } catch (err) {
+                        console.error("Cloud saving error, falling back locally:", err);
+                        batchSaveLocally();
+                    }
+                } else {
+                    batchSaveLocally();
+                }
+                closeExcelImportModal();
+            }
+        };
+
+        function batchSaveLocally() {
+            excelParsedList.forEach(item => {
+                item.id = "local-" + Date.now() + Math.random().toString(36).slice(-4);
+                requestsList.push(item);
+            });
+            saveToLocalStorage();
+            renderTable();
+            updateDashboardStats();
+            showToast(`นำเข้ารายการยื่นคำขอสำเร็จแล้ว ${excelParsedList.length} รายการ!`, "success");
+        }
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'budget-durable-2571';
         
@@ -494,7 +968,7 @@
             "ครุภัณฑ์อื่นๆ": "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&q=80&w=400"
         };
 
-        // Embedded Firebase Config (Your permanent system credentials)
+        // Standard embedded credentials configuration
         const embedFirebaseConfig = {
             apiKey: "AIzaSyC-S21yS_XaiOGzgmY_mojZolLOJy2rxNk",
             authDomain: "budget-durable-2571.firebaseapp.com",
@@ -505,7 +979,6 @@
             measurementId: "G-FF41443YS8"
         };
 
-        // Retrieve config from storage if exists or fallback to the embedded production config
         const storedFirebaseConfig = localStorage.getItem('budget_custom_firebase');
         let activeFirebaseConfig = embedFirebaseConfig;
 
@@ -522,6 +995,17 @@
         window.onload = async function() {
             lucide.createIcons();
             
+            const storedCatalog = localStorage.getItem('durable_custom_master_catalog_2571');
+            if (storedCatalog) {
+                try {
+                    customMasterCatalog = JSON.parse(storedCatalog);
+                } catch (e) {
+                    customMasterCatalog = [];
+                }
+            }
+
+            populateCatalogDropdown(); 
+            
             let connTimeout = setTimeout(() => {
                 if (dbMode === "local") {
                     switchToLocalMode("สลับการใช้งานมาเป็นโหมดออฟไลน์เพื่อความเร็วและความปลอดภัย");
@@ -534,28 +1018,25 @@
                     firebaseAuth = getAuth(firebaseApp);
                     firebaseDb = getFirestore(firebaseApp);
 
-                    // Sign-In with fallback mechanism to avoid auth/custom-token-mismatch
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         try {
                             await signInWithCustomToken(firebaseAuth, __initial_auth_token);
                         } catch (tokenErr) {
-                            console.warn("Custom token authentication failed, falling back to anonymous sign-in:", tokenErr);
+                            console.warn("Custom token auth failed, falling back anonymously:", tokenErr);
                             await signInAnonymously(firebaseAuth);
                         }
                     } else {
                         await signInAnonymously(firebaseAuth);
                     }
 
-                    // Register auth state handler
                     onAuthStateChanged(firebaseAuth, (authUser) => {
                         if (authUser) {
                             clearTimeout(connTimeout);
                             dbMode = "cloud";
                             userUid = authUser.uid;
                             
-                            document.getElementById('user-id-display').innerText = `Cloud ID: ${userUid}`;
+                            document.getElementById('user-id-display').innerText = `Cloud ID: ${userUid.substring(0, 10)}...`;
                             
-                            // Visual bar update
                             const bar = document.getElementById('conn-status-bar');
                             bar.className = "bg-emerald-600 text-white text-xs py-2 px-4 text-center font-semibold font-title flex items-center justify-center gap-2";
                             document.getElementById('conn-status-text').innerHTML = `<i data-lucide='cloud-lightning' class='w-4 h-4 text-yellow-300'></i><span>เชื่อมต่อฐานข้อมูล Cloud สำเร็จ! ข้อมูลอัปเดตแบบ Real-time ร่วมกัน</span>`;
@@ -565,8 +1046,6 @@
                             badge.innerText = "ฐานข้อมูล Cloud ออนไลน์";
                             
                             lucide.createIcons();
-                            
-                            // Listen to Cloud Collection
                             subscribeToCloudDatabase();
                         }
                     });
@@ -665,7 +1144,220 @@
             saveToLocalStorage();
         }
 
-        // Subscribe to Firestore Cloud database real-time
+        window.populateCatalogDropdown = function() {
+            const picker = document.getElementById('catalog_item_picker');
+            if (!picker) return;
+            
+            const groupSelect = document.getElementById('management_group');
+            const selectedGroup = groupSelect ? groupSelect.value : "";
+            
+            const filterByGroup = document.getElementById('filter-by-group-checkbox') ? document.getElementById('filter-by-group-checkbox').checked : true;
+            const clearBtn = document.getElementById('clear-custom-catalog-btn');
+
+            if (customMasterCatalog.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            picker.innerHTML = '<option value="" disabled selected>-- ค้นหาหรือเลือกรายการครุภัณฑ์มาตรฐาน --</option>';
+
+            const customOutsideOption = document.createElement('option');
+            customOutsideOption.value = "custom-outside-catalog";
+            customOutsideOption.textContent = "➕ รายการนอกบัญชีมาตรฐาน (ผู้ใช้กำหนดเอง - ต้องเปรียบเทียบราคา 3 ร้าน)";
+            customOutsideOption.className = "font-bold text-indigo-700 bg-indigo-50 py-1.5";
+            picker.appendChild(customOutsideOption);
+
+            const allItems = [
+                ...standardCatalog.map(x => ({ ...x, is_custom: false })),
+                ...customMasterCatalog.map(x => ({ ...x, is_custom: true }))
+            ];
+
+            let filteredItems = allItems;
+            if (filterByGroup && selectedGroup) {
+                filteredItems = allItems.filter(item => item.group === selectedGroup);
+                
+                const labelText = document.getElementById('filter-label-text');
+                if (labelText) {
+                    labelText.innerText = `กรองเฉพาะรายการแนะนำของ "${selectedGroup}" (${filteredItems.length} รายการ)`;
+                }
+            } else {
+                const labelText = document.getElementById('filter-label-text');
+                if (labelText) {
+                    labelText.innerText = "แสดงรายการครุภัณฑ์ทั้งหมดในคลังระบบ (ไม่กรองกลุ่ม)";
+                }
+            }
+
+            const groups = {};
+            filteredItems.forEach(item => {
+                if (!groups[item.category]) {
+                    groups[item.category] = [];
+                }
+                groups[item.category].push(item);
+            });
+
+            for (const [categoryName, items] of Object.entries(groups)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = `📁 หมวด: ${categoryName} (${items.length} รายการ)`;
+                optgroup.className = "font-bold text-slate-900 bg-slate-100";
+                
+                items.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    const originTag = item.is_custom ? "[คลัง Excel]" : "[งปม. 2571]";
+                    opt.textContent = `${originTag} ${item.name} (${formatThaiCurrency(item.price)})`;
+                    opt.className = "font-normal bg-white text-slate-800 text-xs";
+                    optgroup.appendChild(opt);
+                });
+                
+                picker.appendChild(optgroup);
+            }
+        };
+
+        window.clearCustomMasterCatalog = function() {
+            triggerConfirm(
+                "ล้างคลังนำเข้าสะสม?",
+                "คุณแน่ใจหรือไม่ว่าต้องการลบรายชื่อครุภัณฑ์ที่นำมาจาก Excel ออกจากคลังเลือกข้อมูลทั้งหมด? (รายการคำขอจัดตั้งงบประมาณปัจจุบันจะไม่ถูกลบ)",
+                function() {
+                    customMasterCatalog = [];
+                    localStorage.removeItem('durable_custom_master_catalog_2571');
+                    populateCatalogDropdown();
+                    showToast("ล้างรายการคลังนำเข้าสำเร็จแล้ว", "info");
+                }
+            );
+        };
+
+        window.onManagementGroupChange = function() {
+            populateCatalogDropdown();
+            calculatePricing();
+        };
+
+        window.setEntryMode = function(mode) {
+            currentEntryMode = mode;
+            
+            const btnManual = document.getElementById('mode-manual-btn');
+            const btnCatalog = document.getElementById('mode-catalog-btn');
+            const manualFields = document.getElementById('manual-items-container');
+            const catalogFields = document.getElementById('catalog-picker-container');
+            
+            const priceComparisonHeader = document.getElementById('pricing-comparison-header');
+            const catalogPriceHeader = document.getElementById('catalog-pricing-header');
+            const pricesInputRow = document.getElementById('prices-input-row');
+            const catalogPriceAlert = document.getElementById('catalog-pricing-alert');
+            const pricingCriteriaSelector = document.getElementById('pricing-criteria-selector');
+            
+            const quotationUploadBox = document.getElementById('quotation-upload-box');
+            const quotationCatalogBox = document.getElementById('quotation-catalog-box');
+
+            if (!btnManual || !btnCatalog) return;
+
+            if (mode === 'manual') {
+                btnManual.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5";
+                btnCatalog.className = "py-2 text-xs font-bold rounded-lg transition text-white hover:bg-white/10 flex items-center justify-center gap-1.5";
+                
+                manualFields.classList.remove('hidden');
+                catalogFields.classList.add('hidden');
+                
+                priceComparisonHeader.classList.remove('hidden');
+                catalogPriceHeader.classList.add('hidden');
+                pricesInputRow.classList.remove('hidden');
+                catalogPriceAlert.classList.add('hidden');
+                pricingCriteriaSelector.classList.remove('hidden');
+                
+                quotationUploadBox.classList.remove('hidden');
+                quotationCatalogBox.classList.add('hidden');
+                
+                document.getElementById('category').value = "";
+                document.getElementById('unit').value = "";
+                document.getElementById('item_name').value = "";
+                document.getElementById('category').removeAttribute('disabled');
+                document.getElementById('unit').removeAttribute('disabled');
+                document.getElementById('item_name').removeAttribute('disabled');
+                
+                document.getElementById('shop1_price').value = "";
+                document.getElementById('shop2_price').value = "";
+                document.getElementById('shop3_price').value = "";
+                document.getElementById('shop1_price').removeAttribute('readonly');
+                document.getElementById('shop2_price').removeAttribute('readonly');
+                document.getElementById('shop3_price').removeAttribute('readonly');
+                
+                document.getElementById('quotation_file_url').value = "";
+                
+                document.getElementById('catalog_item_picker').removeAttribute('required');
+                document.getElementById('catalog_item_picker').value = "";
+                document.getElementById('category').setAttribute('required', 'true');
+                document.getElementById('unit').setAttribute('required', 'true');
+                document.getElementById('item_name').setAttribute('required', 'true');
+                document.getElementById('shop1_price').setAttribute('required', 'true');
+                document.getElementById('shop2_price').setAttribute('required', 'true');
+                document.getElementById('shop3_price').setAttribute('required', 'true');
+            } else {
+                btnManual.className = "py-2 text-xs font-bold rounded-lg transition text-white hover:bg-white/10 flex items-center justify-center gap-1.5";
+                btnCatalog.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5";
+                
+                manualFields.classList.add('hidden');
+                catalogFields.classList.remove('hidden');
+                
+                priceComparisonHeader.classList.add('hidden');
+                catalogPriceHeader.classList.remove('hidden');
+                pricesInputRow.classList.add('hidden');
+                catalogPriceAlert.classList.remove('hidden');
+                pricingCriteriaSelector.classList.add('hidden');
+                
+                quotationUploadBox.classList.add('hidden');
+                quotationCatalogBox.classList.remove('hidden');
+                
+                document.getElementById('catalog_item_picker').setAttribute('required', 'true');
+                document.getElementById('category').removeAttribute('required');
+                document.getElementById('unit').removeAttribute('required');
+                document.getElementById('item_name').removeAttribute('required');
+                document.getElementById('shop1_price').removeAttribute('required');
+                document.getElementById('shop2_price').removeAttribute('required');
+                document.getElementById('shop3_price').removeAttribute('required');
+                
+                document.getElementById('quotation_file_url').value = "standard_budget_catalog_2571_exempted.pdf";
+                
+                onCatalogItemChange();
+            }
+            calculatePricing();
+        };
+
+        window.onCatalogItemChange = function() {
+            const picker = document.getElementById('catalog_item_picker');
+            if (!picker) return;
+            const selectedId = picker.value;
+
+            if (selectedId === "custom-outside-catalog") {
+                triggerAlert(
+                    "ย้ายไปยังโหมดเปรียบเทียบราคา",
+                    "เนื่องจากครุภัณฑ์นี้อยู่นอกบัญชีมาตรฐานสำนักงบประมาณ (รายการผู้ใช้กำหนดเอง) ระบบจำเป็นต้องให้ท่านสืบราคาและเปรียบเทียบราคาจาก 3 ร้านค้า พร้อมทั้งแนบเอกสาร PDF ใบเสนอราคาตามระเบียบพัสดุ ระบบได้ทำการสลับไปยังโหมด 'กรอกราคาเปรียบเทียบ (3 ร้าน)' เรียบร้อยแล้ว"
+                );
+                setEntryMode('manual');
+                return;
+            }
+
+            const allItems = [
+                ...standardCatalog,
+                ...customMasterCatalog
+            ];
+
+            const item = allItems.find(x => x.id === selectedId);
+            if (item) {
+                document.getElementById('category').value = item.category;
+                document.getElementById('unit').value = item.unit;
+                document.getElementById('item_name').value = item.name;
+                
+                document.getElementById('shop1_price').value = item.price;
+                document.getElementById('shop2_price').value = item.price;
+                document.getElementById('shop3_price').value = item.price;
+                
+                document.getElementById('catalog_price_badge').innerText = formatThaiCurrency(item.price);
+                document.getElementById('selected_unit_price').innerText = formatThaiCurrency(item.price);
+                
+                calculatePricing();
+            }
+        };
+
         function subscribeToCloudDatabase() {
             if (!firebaseAuth.currentUser) return;
             
@@ -681,14 +1373,13 @@
                 updateDashboardStats();
             }, (error) => {
                 console.error("Firestore loading error:", error);
-                showToast("ไม่สามารถเรียกดูข้อมูลออนไลน์ยลออฟไลน์ได้ สลับมาใช้ข้อมูลในเครื่อง", "warning");
+                showToast("ไม่สามารถเรียกดูข้อมูลออนไลน์ได้ชั่วคราว สลับมาใช้ข้อมูลในเครื่อง", "warning");
                 if (requestsList.length === 0) {
                     loadFromLocalStorage();
                 }
             });
         }
 
-        // Form Submit handler
         window.handleFormSubmit = async function(event) {
             event.preventDefault();
 
@@ -712,13 +1403,17 @@
             }
 
             const prices = [shop1, shop2, shop3].filter(p => p > 0);
-            const radioChoice = document.querySelector('input[name="price_choice"]:checked').value;
+            const radioChoice = document.querySelector('input[name="price_choice"]:checked') ? document.querySelector('input[name="price_choice"]:checked').value : 'lowest';
             let selectedPrice = 0;
 
-            if (radioChoice === 'lowest') {
-                selectedPrice = Math.min(...prices);
+            if (currentEntryMode === 'catalog') {
+                selectedPrice = shop1;
             } else {
-                selectedPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                if (radioChoice === 'lowest') {
+                    selectedPrice = Math.min(...prices);
+                } else {
+                    selectedPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                }
             }
 
             const totalBudget = selectedPrice * qty;
@@ -734,7 +1429,7 @@
                 shop1_price: shop1,
                 shop2_price: shop2,
                 shop3_price: shop3,
-                price_choice: radioChoice,
+                price_choice: currentEntryMode === 'catalog' ? 'catalog' : radioChoice,
                 selected_price: selectedPrice,
                 total_budget: totalBudget,
                 image_url: imageUrl,
@@ -748,7 +1443,7 @@
                 try {
                     const requestsCollection = collection(firebaseDb, 'artifacts', appId, 'public', 'data', 'requests');
                     await addDoc(requestsCollection, requestData);
-                    showToast("ส่งคำขอขึ้นฐานข้อมูลออนไลน์แล้ว!", "success");
+                    showToast("บันทึกข้อมูลยื่นคำขอขึ้น Cloud เรียบร้อย!", "success");
                     clearForm();
                 } catch (err) {
                     console.error("Cloud saving error, fallback to local:", err);
@@ -770,68 +1465,10 @@
             clearForm();
         }
 
-        // UI Dialog System Instead of browser standard pops
-        function triggerConfirm(title, message, callback) {
-            const modal = document.getElementById('customDialogModal');
-            const iconBox = document.getElementById('dialog-icon-container');
-            const titleEl = document.getElementById('dialog-title');
-            const msgEl = document.getElementById('dialog-message');
-            const btnBox = document.getElementById('dialog-buttons');
-
-            titleEl.innerText = title;
-            msgEl.innerText = message;
-            
-            iconBox.className = "mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-600";
-            iconBox.innerHTML = `<i data-lucide="help-circle" class="w-6 h-6"></i>`;
-
-            btnBox.innerHTML = `
-                <button id="confirm-cancel-btn" class="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-semibold hover:bg-slate-50 transition">ยกเลิก</button>
-                <button id="confirm-accept-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-md shadow-red-100">ยืนยัน</button>
-            `;
-
-            lucide.createIcons();
-            modal.classList.remove('hidden');
-
-            document.getElementById('confirm-cancel-btn').onclick = function() {
-                modal.classList.add('hidden');
-            };
-
-            document.getElementById('confirm-accept-btn').onclick = function() {
-                modal.classList.add('hidden');
-                callback();
-            };
-        }
-
-        function triggerAlert(title, message) {
-            const modal = document.getElementById('customDialogModal');
-            const iconBox = document.getElementById('dialog-icon-container');
-            const titleEl = document.getElementById('dialog-title');
-            const msgEl = document.getElementById('dialog-message');
-            const btnBox = document.getElementById('dialog-buttons');
-
-            titleEl.innerText = title;
-            msgEl.innerText = message;
-
-            iconBox.className = "mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600";
-            iconBox.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
-
-            btnBox.innerHTML = `
-                <button id="alert-close-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition">รับทราบ</button>
-            `;
-
-            lucide.createIcons();
-            modal.classList.remove('hidden');
-
-            document.getElementById('alert-close-btn').onclick = function() {
-                modal.classList.add('hidden');
-            };
-        }
-
-        // Delete function
-        window.deleteItem = function(id) {
+        window.deleteItem = async function(id) {
             triggerConfirm(
-                "ต้องการลบรายการหรือไม่?",
-                "คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบอย่างถาวร?",
+                "ลบรายการขอตั้งงบประมาณ?",
+                "คุณแน่ใจหรือไม่ว่าต้องการลบคำขอรายการนี้ออกจากระบบ? การกระทำนี้ไม่สามารถย้อนกลับได้",
                 async function() {
                     if (dbMode === "cloud" && id.indexOf("local-") === -1 && firebaseDb) {
                         try {
@@ -853,7 +1490,6 @@
             );
         };
 
-        // Firebase Custom config Setup procedures
         window.openConfigModal = function() {
             const input = document.getElementById('firebase-json-input');
             const saved = localStorage.getItem('budget_custom_firebase');
@@ -874,30 +1510,29 @@
             try {
                 const parsed = JSON.parse(rawVal);
                 if (!parsed.apiKey || !parsed.projectId) {
-                    triggerAlert("ข้อมูลไม่สมบูรณ์", "กรุณาตรวจสอบว่ามีค่า apiKey และ projectId ครบถ้วน");
+                    triggerAlert("ข้อมูลไม่ครบถ้วน", "ข้อมูล Firebase Config JSON ไม่สมบูรณ์ กรุณาตรวจสอบ apiKey และ projectId");
                     return;
                 }
                 localStorage.setItem('budget_custom_firebase', JSON.stringify(parsed));
-                triggerAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อยแล้ว หน้าจอจะทำการรีเฟรชเข้าคลาวด์ตัวใหม่");
-                setTimeout(() => window.location.reload(), 1500);
+                triggerAlert("บันทึกสำเร็จ", "บันทึกข้อมูล Firebase คีย์สำเร็จ! หน้าจอจะรีเฟรชเพื่อเข้าสู่ฐานข้อมูลคลาวด์ใหม่");
+                window.location.reload();
             } catch (e) {
-                triggerAlert("รูปแบบข้อมูลไม่ถูกต้อง", "กรุณาตรวจสอบเครื่องหมายปีกกาและเครื่องหมายอัญประกาศ");
+                triggerAlert("ฟอร์แมตผิดพลาด", "ข้อมูลไม่อยู่ในฟอร์แมต JSON ที่ถูกต้อง กรุณาตรวจสอบความถูกต้องของวงเล็บปีกกาและอัญประกาศ");
             }
         };
 
         window.clearCustomFirebase = function() {
             triggerConfirm(
-                "ยกเลิกการเชื่อมต่อคลาวด์?",
-                "คุณต้องการกลับไปใช้คลาวด์เริ่มต้นแบบออฟไลน์/ออนไลน์ปกติใช่หรือไม่?",
+                "ล้างคีย์การเชื่อมต่อ?",
+                "คุณต้องการยกเลิกการตั้งค่าฐานข้อมูลคลาวด์ของคุณและกลับไปใช้งานออฟไลน์/คีย์กลางใช่หรือไม่?",
                 function() {
                     localStorage.removeItem('budget_custom_firebase');
-                    triggerAlert("สำเร็จ", "ระบบเปลี่ยนกลับไปใช้โปรเจกต์เดิมเรียบร้อยแล้ว กำลังเริ่มรีเฟรชหน้าจอ");
-                    setTimeout(() => window.location.reload(), 1500);
+                    triggerAlert("รีเซ็ตสำเร็จ", "ยกเลิกคีย์ส่วนตัวแล้ว หน้าจอจะรีเฟรชเพื่อกลับสู่ระบบพื้นฐาน");
+                    window.location.reload();
                 }
             );
         };
 
-        // Helper calculations
         window.calculatePricing = function() {
             const shop1 = parseFloat(document.getElementById('shop1_price').value) || 0;
             const shop2 = parseFloat(document.getElementById('shop2_price').value) || 0;
@@ -910,18 +1545,22 @@
             const radioChoice = document.querySelector('input[name="price_choice"]:checked');
             const choiceMode = radioChoice ? radioChoice.value : 'lowest';
 
-            if (prices.length > 0) {
-                if (choiceMode === 'lowest') {
-                    selectedPrice = Math.min(...prices);
-                } else if (choiceMode === 'average') {
-                    selectedPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+            if (currentEntryMode === 'catalog') {
+                selectedPrice = shop1;
+            } else {
+                if (prices.length > 0) {
+                    if (choiceMode === 'lowest') {
+                        selectedPrice = Math.min(...prices);
+                    } else if (choiceMode === 'average') {
+                        selectedPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    }
                 }
             }
 
             const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-            document.getElementById('shop1_price').style.borderColor = (shop1 > 0 && shop1 === minPrice) ? '#10B981' : '#E2E8F0';
-            document.getElementById('shop2_price').style.borderColor = (shop2 > 0 && shop2 === minPrice) ? '#10B981' : '#E2E8F0';
-            document.getElementById('shop3_price').style.borderColor = (shop3 > 0 && shop3 === minPrice) ? '#10B981' : '#E2E8F0';
+            document.getElementById('shop1_price').style.borderColor = (shop1 > 0 && shop1 === minPrice && currentEntryMode !== 'catalog') ? '#10B981' : '#E2E8F0';
+            document.getElementById('shop2_price').style.borderColor = (shop2 > 0 && shop2 === minPrice && currentEntryMode !== 'catalog') ? '#10B981' : '#E2E8F0';
+            document.getElementById('shop3_price').style.borderColor = (shop3 > 0 && shop3 === minPrice && currentEntryMode !== 'catalog') ? '#10B981' : '#E2E8F0';
 
             document.getElementById('selected_unit_price').innerText = formatThaiCurrency(selectedPrice);
             const total = selectedPrice * qty;
@@ -962,7 +1601,7 @@
         window.resetFileUpload = function(event) {
             event.stopPropagation();
             document.getElementById('quotation_file').value = "";
-            document.getElementById('quotation_file_url').value = "";
+            document.getElementById('quotation_file_url').value = currentEntryMode === 'catalog' ? 'standard_budget_catalog_2571_exempted.pdf' : '';
             document.getElementById('file_preview_active').classList.add('hidden');
             document.getElementById('file_preview_box').classList.remove('hidden');
         };
@@ -971,39 +1610,27 @@
             const demoPool = [
                 {
                     group: "กลุ่มบริหารวิชาการ",
-                    work: "งานวิทยบริการและสื่อนวัตกรรม",
+                    work: "งานส่งเสริมการศึกษาพิเศษ",
                     category: "ครุภัณฑ์คอมพิวเตอร์",
-                    item: "เครื่องประมวลผลเซิร์ฟเวอร์ย่อย สำหรับจัดการระบบห้องสมุดดิจิทัล",
+                    item: "เครื่องคอมพิวเตอร์ประมวลผลเซิร์ฟเวอร์ย่อย สำหรับคลังข้อสอบดิจิทัล",
                     unit: "เครื่อง",
                     shop1: 45000,
                     shop2: 43200,
                     shop3: 44500,
                     qty: 2,
-                    reason: "ใช้เพื่อขยายศักยภาพห้องสมุดของสถานศึกษาให้เข้าสู่ระบบออนไลน์แบบยืดหยุ่น รองรับการเข้าถึงของนักศึกษา"
+                    reason: "ใช้สำหรับทำคลังข้อสอบดิจิทัลและวัดผลการศึกษาแบบประมวลผลอัตโนมัติของสถาบันย่อยในกลุ่มวิชาการ"
                 },
                 {
                     group: "กลุ่มอำนวยการ",
-                    work: "งานธุรการและสารบรรณกลาง",
+                    work: "งานพัสดุจัดซื้อและควบคุมประเมิน",
                     category: "ครุภัณฑ์สำนักงาน",
-                    item: "เครื่องทำลายเอกสารระบบความละเอียดสูงตัดแบบ Cross-Cut",
+                    item: "เครื่องทำลายเอกสารระบบความละเอียดสูงตัดแบบ Cross-Cut รุ่นธุรการ",
                     unit: "เครื่อง",
                     shop1: 18500,
                     shop2: 17900,
                     shop3: 19200,
                     qty: 4,
-                    reason: "ใช้สำหรับทำลายเอกสารสอบและเอกสารลับข้อมูลส่วนบุคคลตามกฎหมาย PDPA เพื่อความปลอดภัยของข้อมูลในองค์กร"
-                },
-                {
-                    group: "กลุ่มบริหารทั่วไป",
-                    work: "งานประชาสัมพันธ์องค์กร",
-                    category: "ครุภัณฑ์ไฟฟ้าและวิทยุ",
-                    item: "ไมโครโฟนไร้สายระบบดิจิทัลแบบคู่ความถี่สูง UHF",
-                    unit: "ชุด",
-                    shop1: 11000,
-                    shop2: 11500,
-                    shop3: 10500,
-                    qty: 5,
-                    reason: "ใช้สำหรับงานกิจกรรมปฐมนิเทศ และงานประชุมผู้ปกครองขนาดใหญ่กลางแจ้ง เพื่อคุณภาพสัญญาณเสียงที่คมชัด"
+                    reason: "เพื่อทำลายเอกสารสำคัญข้อมูลนักเรียนและบุคลากรเพื่อสอดคล้องตามเกณฑ์ PDPA และระเบียบพัสดุ"
                 }
             ];
 
@@ -1011,6 +1638,9 @@
 
             document.getElementById('management_group').value = picked.group;
             document.getElementById('department_work').value = picked.work;
+            
+            setEntryMode('manual');
+            
             document.getElementById('category').value = picked.category;
             document.getElementById('item_name').value = picked.item;
             document.getElementById('unit').value = picked.unit;
@@ -1026,7 +1656,7 @@
             document.getElementById('quotation_file_url').value = `quotation_bundle_${Date.now().toString().slice(-4)}.pdf`;
 
             window.calculatePricing();
-            showToast("สุ่มข้อมูลเรียบร้อย ใส่ในแบบฟอร์มให้แล้วครับ", "info");
+            showToast("สุ่มข้อมูลตัวอย่างให้เรียบร้อยแล้ว!", "info");
         };
 
         window.clearForm = function() {
@@ -1038,7 +1668,7 @@
             document.getElementById('image_preview_box').classList.remove('hidden');
 
             document.getElementById('quotation_file').value = "";
-            document.getElementById('quotation_file_url').value = "";
+            document.getElementById('quotation_file_url').value = currentEntryMode === 'catalog' ? 'standard_budget_catalog_2571_exempted.pdf' : '';
             document.getElementById('file_preview_active').classList.add('hidden');
             document.getElementById('file_preview_box').classList.remove('hidden');
 
@@ -1076,7 +1706,7 @@
 
             if (filteredList.length === 0) {
                 emptyState.classList.remove('hidden');
-                document.getElementById('empty-state-title').innerText = "ไม่มีข้อมูลคำขอจัดตั้งงบประมาณ";
+                document.getElementById('empty-state-title').innerText = "ไม่พบรายการแผนงบประมาณ";
                 document.getElementById('empty-state-desc').innerText = "ระบบไม่มีข้อมูลแสดงผลตามการกรอง ค้นหา หรือบันทึกปัจจุบัน";
                 return;
             } else {
@@ -1086,6 +1716,8 @@
             filteredList.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/80 transition duration-150 border-b border-slate-100";
+                
+                const isCatalogMode = item.price_choice === 'catalog';
                 
                 tr.innerHTML = `
                     <td class="px-4 py-3 text-center font-semibold text-slate-400">${index + 1}</td>
@@ -1112,7 +1744,7 @@
                                 <i data-lucide="image" class="w-4 h-4"></i>
                             </button>
                             <button onclick="viewAttachment('${item.id}', 'file')" title="ดูใบเสนอราคา" class="p-1 text-slate-600 hover:bg-slate-100 rounded transition">
-                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                                <i data-lucide="${isCatalogMode ? 'shield-check' : 'file-text'}" class="w-4 h-4 ${isCatalogMode ? 'text-indigo-600' : 'text-slate-500'}"></i>
                             </button>
                         </div>
                     </td>
@@ -1194,6 +1826,8 @@
             const diffPrice = maxPrice - minPrice;
             const savingsPercent = Math.round(((maxPrice - item.selected_price) / maxPrice) * 100) || 0;
 
+            const isCatalogMode = item.price_choice === 'catalog';
+
             modalContent.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
                     
@@ -1207,11 +1841,11 @@
 
                         <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2">
                             <div class="flex items-center space-x-2 text-indigo-900 font-bold text-xs">
-                                <i data-lucide="file-check" class="w-4.5 h-4.5 text-indigo-700"></i>
-                                <span>ไฟล์ใบเสนอราคา (3 ร้านใน 1 ไฟล์)</span>
+                                <i data-lucide="${isCatalogMode ? 'shield-check' : 'file-check'}" class="w-4.5 h-4.5 text-indigo-700"></i>
+                                <span>${isCatalogMode ? 'เอกสารเกณฑ์มาตรฐานกลาง' : 'เอกสารสืบราคาแนบ (3 ร้านค้า)'}</span>
                             </div>
                             <p class="text-[11px] font-semibold text-slate-600 truncate">${item.quotation_file_url}</p>
-                            <a href="#" onclick="triggerAlert('เอกสารแนบ', 'ใบเสนอราคาเอกสารแนบจำลองบน Cloud สำหรับตรวจสอบรายการ')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
+                            <a href="#" onclick="alert('กำลังเปิดดูไฟล์อ้างอิงที่รวบรวมไว้...')" class="inline-block text-xs text-indigo-700 hover:underline font-bold mt-1">
                                 <i data-lucide="external-link" class="w-3.5 h-3.5 inline mr-1"></i>คลิกเพื่อเปิดเอกสารแนบ
                             </a>
                         </div>
@@ -1260,8 +1894,14 @@
                 <div>
                     <h5 class="text-xs font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
                         <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
-                        การเปรียบเทียบข้อเสนอราคา (3 ร้านค้า)
+                        การวิเคราะห์เกณฑ์ราคาเสนอตั้งงบประมาณ
                     </h5>
+                    ${isCatalogMode ? `
+                    <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-center space-y-1">
+                        <p class="text-xs font-bold text-indigo-950 flex items-center justify-center gap-1"><i data-lucide="shield-check" class="text-indigo-600"></i>รายการได้รับการยกเว้นการเปรียบเทียบราคาเสนอตามระเบียบพัสดุ</p>
+                        <p class="text-[11px] text-indigo-700">อ้างอิงราคามาตรฐานกลางจากบัญชีครุภัณฑ์สำนักงบประมาณประจำปี พ.ศ. 2571: <strong class="font-title">${formatThaiCurrency(item.selected_price)}</strong></p>
+                    </div>
+                    ` : `
                     <div class="grid grid-cols-3 gap-3">
                         <div class="p-3 rounded-xl border text-center ${item.shop1_price === minPrice ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50/50 border-slate-100'}">
                             <p class="text-[10px] font-bold ${item.shop1_price === minPrice ? 'text-emerald-700' : 'text-slate-400'}">ร้านค้าที่ 1</p>
@@ -1287,6 +1927,7 @@
                         </p>
                         <span>ส่วนต่างส่วนลดตลาด: ${formatThaiCurrency(diffPrice)}</span>
                     </div>
+                    `}
                 </div>
             `;
 
@@ -1306,18 +1947,62 @@
                 const modal = document.createElement('div');
                 modal.className = "fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm";
                 modal.innerHTML = `
-                    <div class="bg-white rounded-2xl overflow-hidden max-w-lg w-full relative">
+                    <div class="bg-white rounded-2xl overflow-hidden max-w-lg w-full relative animate-in zoom-in-95 duration-150">
                         <img src="${item.image_url}" alt="รูปครุภัณฑ์" class="w-full h-auto object-contain max-h-[70vh]">
-                        <div class="p-4 bg-slate-50 flex justify-between items-center text-xs">
+                        <div class="p-4 bg-slate-50 flex justify-between items-center text-xs border-t">
                             <span class="font-bold text-slate-700">${item.item_name}</span>
-                            <button onclick="this.parentElement.parentElement.parentElement.remove()" class="px-3 py-1.5 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300">ปิด</button>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" class="px-3.5 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300">ปิด</button>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(modal);
             } else if (type === 'file') {
-                triggerAlert("ไฟล์เอกสารหลักฐานแนบ", `รายการ: ${item.item_name}\n\nเอกสาร: ${item.quotation_file_url}\n(เป็นหลักฐานรวมเปรียบเทียบทั้ง 3 ร้านค้า)`);
+                const isCatalogMode = item.price_choice === 'catalog';
+                if (isCatalogMode) {
+                    triggerAlert("อ้างอิงกฎเกณฑ์มาตรฐาน", `รายการครุภัณฑ์ "${item.item_name}" ได้รับการขอตั้งตามเกณฑ์มาตรฐานกลางประจำปี พ.ศ. 2571\n\nจึงไม่จำเป็นต้องแนบใบเสนอราคาจาก 3 ร้านค้าเพิ่มตามระเบียบพัสดุ`);
+                } else {
+                    triggerAlert("เปิดเอกสารอ้างอิง", `ระบบจำลองการเปิดไฟล์ตรวจสอบเอกสารสืบราคาสำหรับรายการ:\n"${item.item_name}"\n\nชื่อไฟล์หลักฐาน: ${item.quotation_file_url}`);
+                }
             }
+        };
+
+        // System replacements for native alert/confirm
+        let activeConfirmCallback = null;
+
+        window.triggerConfirm = function(title, description, callback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-desc').innerText = description;
+            activeConfirmCallback = callback;
+            
+            document.getElementById('confirmDialog').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.closeConfirmDialog = function() {
+            document.getElementById('confirmDialog').classList.add('hidden');
+            activeConfirmCallback = null;
+        };
+
+        document.getElementById('confirm-action-btn').onclick = function() {
+            if (activeConfirmCallback) {
+                activeConfirmCallback();
+            }
+            closeConfirmDialog();
+        };
+
+        window.triggerAlert = function(title, description, iconName = "info") {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = description;
+            
+            const container = document.getElementById('alert-icon-container');
+            container.innerHTML = `<i data-lucide="${iconName}" class="w-8 h-8"></i>`;
+            
+            document.getElementById('alertDialog').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.closeAlertDialog = function() {
+            document.getElementById('alertDialog').classList.add('hidden');
         };
 
         function formatThaiCurrency(amount) {
@@ -1332,13 +2017,13 @@
             toastMsg.innerText = message;
             
             if (type === "success") {
-                toast.className = "fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-2.5 transform transition-all duration-300";
+                toast.className = "fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl z-[101] flex items-center space-x-2.5 transform transition-all duration-300";
                 toastIcon.setAttribute('data-lucide', 'check-circle');
             } else if (type === "warning") {
-                toast.className = "fixed bottom-5 right-5 bg-amber-500 text-slate-950 px-4 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-2.5 transform transition-all duration-300";
+                toast.className = "fixed bottom-5 right-5 bg-amber-500 text-slate-950 px-4 py-3 rounded-xl shadow-xl z-[101] flex items-center space-x-2.5 transform transition-all duration-300";
                 toastIcon.setAttribute('data-lucide', 'alert-triangle');
             } else {
-                toast.className = "fixed bottom-5 right-5 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-xl z-50 flex items-center space-x-2.5 transform transition-all duration-300";
+                toast.className = "fixed bottom-5 right-5 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-xl z-[101] flex items-center space-x-2.5 transform transition-all duration-300";
                 toastIcon.setAttribute('data-lucide', 'info');
             }
 
