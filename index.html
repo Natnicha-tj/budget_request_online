@@ -757,6 +757,33 @@
         };
 
         // Analyze Excel rows & map headers intelligently
+        function cleanNumber(val) {
+            if (val === undefined || val === null) return 0;
+            if (typeof val === 'number') return val;
+            
+            // Remove spacing, commas, currency symbols, and Thai word 'บาท'
+            const cleaned = String(val)
+                .replace(/,/g, '')
+                .replace(/[฿\$\sบาท]/g, '')
+                .trim();
+            
+            const match = cleaned.match(/[-+]?[0-9]*\.?[0-9]+/);
+            if (match) {
+                const num = parseFloat(match[0]);
+                return isNaN(num) ? 0 : num;
+            }
+            return 0;
+        }
+
+        function cleanInteger(val) {
+            if (val === undefined || val === null) return 1;
+            if (typeof val === 'number') return Math.floor(val);
+            
+            const cleaned = String(val).replace(/[^0-9]/g, '');
+            const num = parseInt(cleaned, 10);
+            return isNaN(num) || num <= 0 ? 1 : num;
+        }
+
         function parseExcelRows(rows) {
             // Retrieve headers safely
             const headers = rows[0].map(h => String(h || "").trim().toLowerCase());
@@ -773,24 +800,41 @@
             let idxReason = -1;
             let idxGroup = -1;
 
-            // Map standard Thai & English column indexes
+            // Map standard Thai & English column indexes intelligently
             headers.forEach((h, i) => {
-                if (h.includes("รายการ") || h.includes("ชื่อครุภัณฑ์") || h.includes("item") || h.includes("name")) idxItemName = i;
-                else if (h.includes("ประเภท") || h.includes("หมวด") || h.includes("category")) idxCategory = i;
-                else if (h.includes("หน่วย") || h.includes("unit")) idxUnit = i;
-                else if (h.includes("จำนวน") || h.includes("qty") || h.includes("quantity")) idxQty = i;
-                else if (h.includes("ที่มา") || h.includes("แหล่ง") || h.includes("ประเภทบัญชี") || h.includes("source")) idxSource = i;
-                else if (h.includes("ราคากลาง") || h.includes("ราคาต่อหน่วย") || h.includes("ราคา") || h.includes("price")) idxPrice = i;
-                else if (h.includes("ร้าน 1") || h.includes("ร้านที่ 1") || h.includes("shop1")) idxShop1 = i;
-                else if (h.includes("ร้าน 2") || h.includes("ร้านที่ 2") || h.includes("shop2")) idxShop2 = i;
-                else if (h.includes("ร้าน 3") || h.includes("ร้านที่ 3") || h.includes("shop3")) idxShop3 = i;
-                else if (h.includes("เหตุผล") || h.includes("ความจำเป็น") || h.includes("reason")) idxReason = i;
-                else if (h.includes("กลุ่ม") || h.includes("หน่วยงาน") || h.includes("ฝ่าย") || h.includes("workgroup") || h.includes("department")) idxGroup = i;
+                if (h.includes("ร้าน 1") || h.includes("ร้านที่ 1") || h.includes("shop1") || h.includes("ร้านค้าที่ 1") || h.includes("เสนอราคา 1") || h.includes("ราคา 1")) idxShop1 = i;
+                else if (h.includes("ร้าน 2") || h.includes("ร้านที่ 2") || h.includes("shop2") || h.includes("ร้านค้าที่ 2") || h.includes("เสนอราคา 2") || h.includes("ราคา 2")) idxShop2 = i;
+                else if (h.includes("ร้าน 3") || h.includes("ร้านที่ 3") || h.includes("shop3") || h.includes("ร้านค้าที่ 3") || h.includes("เสนอราคา 3") || h.includes("ราคา 3")) idxShop3 = i;
+                else if (h.includes("ราคากลาง") || h.includes("ราคาต่อหน่วย") || h.includes("ราคา") || h.includes("หน่วยละ") || h.includes("ราคาขาย") || h.includes("ราคาเสนอ") || h.includes("price") || h.includes("cost") || h.includes("งบประมาณต่อหน่วย") || h.includes("บาท")) idxPrice = i;
+                else if (h.includes("รายการ") || h.includes("ชื่อครุภัณฑ์") || h.includes("ชื่อ") || h.includes("item") || h.includes("name") || h.includes("สเปก") || h.includes("รายละเอียด")) idxItemName = i;
+                else if (h.includes("ประเภท") || h.includes("หมวด") || h.includes("category") || h.includes("group_type")) idxCategory = i;
+                else if (h.includes("หน่วยนับ") || h.includes("หน่วย") || h.includes("unit")) idxUnit = i;
+                else if (h.includes("จำนวน") || h.includes("qty") || h.includes("quantity") || h.includes("vol") || h.includes("volume")) idxQty = i;
+                else if (h.includes("ที่มา") || h.includes("แหล่ง") || h.includes("ประเภทบัญชี") || h.includes("source") || h.includes("บัญชี")) idxSource = i;
+                else if (h.includes("เหตุผล") || h.includes("ความจำเป็น") || h.includes("reason") || h.includes("จำเป็น")) idxReason = i;
+                else if (h.includes("กลุ่ม") || h.includes("หน่วยงาน") || h.includes("ฝ่าย") || h.includes("งาน") || h.includes("workgroup") || h.includes("department") || h.includes("dept")) idxGroup = i;
             });
 
             // Set fallback rules if matching fails
             if (idxItemName === -1) idxItemName = 0;
-            if (idxPrice === -1) idxPrice = idxShop1 !== -1 ? idxShop1 : 1; 
+            
+            // Smart Price Mapping Fallback
+            if (idxPrice === -1) {
+                if (idxShop1 !== -1) {
+                    idxPrice = idxShop1;
+                } else {
+                    for (let col = 0; col < headers.length; col++) {
+                        if (col === idxQty || col === idxItemName || col === idxUnit) continue;
+                        if (rows[1] && rows[1][col] !== undefined) {
+                            let testVal = cleanNumber(rows[1][col]);
+                            if (testVal > 100) { // Guessing it is standard unit price
+                                idxPrice = col;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
 
             excelParsedList = [];
             let countStandard = 0;
@@ -807,7 +851,7 @@
                 const rawSource = idxSource !== -1 ? String(row[idxSource] || "") : "";
                 const rawCategory = idxCategory !== -1 ? String(row[idxCategory] || "ครุภัณฑ์สำนักงาน") : "ครุภัณฑ์สำนักงาน";
                 const rawUnit = idxUnit !== -1 ? String(row[idxUnit] || "เครื่อง") : "เครื่อง";
-                const rawQty = idxQty !== -1 ? parseInt(row[idxQty]) || 1 : 1;
+                const rawQty = idxQty !== -1 ? cleanInteger(row[idxQty]) : 1;
                 const rawReason = idxReason !== -1 ? String(row[idxReason] || "สนับสนุนการปฏิบัติงานย่อย") : "สนับสนุนการเรียนการสอนและอำนวยการระบบ";
                 
                 // Group alignment
@@ -819,11 +863,11 @@
                 else if (rawGroup.includes("ทั่วไป") || rawGroup.includes("general")) rawGroup = "กลุ่มบริหารทั่วไป";
                 else rawGroup = "กลุ่มบริหารทั่วไป"; 
 
-                // Resolve Prices
-                const priceUnit = idxPrice !== -1 ? parseFloat(row[idxPrice]) || 0 : 0;
-                const shop1 = idxShop1 !== -1 ? parseFloat(row[idxShop1]) || priceUnit : priceUnit;
-                const shop2 = idxShop2 !== -1 ? parseFloat(row[idxShop2]) || priceUnit : priceUnit;
-                const shop3 = idxShop3 !== -1 ? parseFloat(row[idxShop3]) || priceUnit : priceUnit;
+                // Resolve Prices safely using numerical cleaner
+                const priceUnit = idxPrice !== -1 ? cleanNumber(row[idxPrice]) : 0;
+                const shop1 = idxShop1 !== -1 ? cleanNumber(row[idxShop1]) : priceUnit;
+                const shop2 = idxShop2 !== -1 ? cleanNumber(row[idxShop2]) : priceUnit;
+                const shop3 = idxShop3 !== -1 ? cleanNumber(row[idxShop3]) : priceUnit;
 
                 // Standard verification
                 let isStandard = false;
